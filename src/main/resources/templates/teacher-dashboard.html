@@ -41,6 +41,12 @@
             flex: 1;
             min-width: 80px;
         }
+        .stats-card {
+            transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -64,7 +70,7 @@
     <!-- Stats Section -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card text-white bg-primary">
+            <div class="card text-white bg-primary stats-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -79,7 +85,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-white bg-success">
+            <div class="card text-white bg-success stats-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -94,7 +100,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-white bg-warning">
+            <div class="card text-white bg-warning stats-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -109,7 +115,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-white bg-info">
+            <div class="card text-white bg-info stats-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -131,9 +137,9 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h2><i class="fas fa-list"></i> My Quizzes</h2>
                 <div>
-                    <button class="btn btn-primary me-2" onclick="createNewQuiz()">
+                    <a href="/teacher/quizzes/create" class="btn btn-primary me-2">
                         <i class="fas fa-plus"></i> Create New Quiz
-                    </button>
+                    </a>
                     <button class="btn btn-outline-secondary" onclick="refreshQuizzes()">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
@@ -148,9 +154,9 @@
             <div class="alert alert-info text-center">
                 <h4><i class="fas fa-info-circle"></i> No quizzes created yet</h4>
                 <p>Create your first quiz to get started!</p>
-                <button class="btn btn-primary btn-lg" onclick="createNewQuiz()">
+                <a href="/teacher/quizzes/create" class="btn btn-primary btn-lg">
                     <i class="fas fa-plus"></i> Create Your First Quiz
-                </button>
+                </a>
             </div>
         </div>
 
@@ -201,9 +207,9 @@
                                 th:onclick="'unpublishQuiz(' + ${quiz.id} + ')'">
                             <i class="fas fa-archive"></i> Unpublish
                         </button>
-                        <button class="btn btn-primary btn-sm btn-action" th:onclick="'editQuiz(' + ${quiz.id} + ')'">
+                        <a th:href="@{/teacher/quizzes/{id}/edit(id=${quiz.id})}" class="btn btn-primary btn-sm btn-action">
                             <i class="fas fa-edit"></i> Edit
-                        </button>
+                        </a>
                         <button class="btn btn-info btn-sm btn-action" th:onclick="'viewResults(' + ${quiz.id} + ')'">
                             <i class="fas fa-chart-bar"></i> Results
                         </button>
@@ -225,6 +231,7 @@
     <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
             <strong class="me-auto">QuizApp Notification</strong>
+            <small class="text-muted">just now</small>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
         <div class="toast-body" id="toastMessage">
@@ -239,6 +246,13 @@
     function showToast(message, type = 'info') {
         const toastEl = document.getElementById('liveToast');
         const toastBody = document.getElementById('toastMessage');
+
+        // Update timestamp
+        const timestamp = toastEl.querySelector('.text-muted');
+        if (timestamp) {
+            const now = new Date();
+            timestamp.textContent = now.toLocaleTimeString();
+        }
 
         toastBody.textContent = message;
         toastBody.className = 'toast-body';
@@ -258,10 +272,10 @@
 
     // Publish quiz function
     function publishQuiz(quizId) {
-        console.log('Publishing quiz:', quizId);
+        console.log('🔄 Publishing quiz:', quizId);
 
         if (confirm('Are you sure you want to publish this quiz?\n\n✅ Students will be able to see and attempt it.\n✅ Make sure all questions are added and correct.')) {
-            showToast('Publishing quiz...', 'info');
+            showToast('📤 Publishing quiz...', 'info');
 
             fetch(`/teacher/quizzes/${quizId}/publish`, {
                 method: 'POST',
@@ -271,36 +285,37 @@
                 credentials: 'include'
             })
                 .then(response => {
+                    console.log('📨 Response status:', response.status);
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Publish response:', data);
+                    console.log('✅ Publish response:', data);
                     if (data.success) {
-                        showToast(data.message, 'success');
+                        showToast('🎉 ' + data.message, 'success');
                         // Reload after short delay to see the toast
                         setTimeout(() => {
                             window.location.reload();
                         }, 2000);
                     } else {
-                        showToast(data.message, 'error');
+                        showToast('❌ ' + data.message, 'error');
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    showToast('An error occurred while publishing the quiz. Please try again.', 'error');
+                    console.error('🔴 Error:', error);
+                    showToast('❌ An error occurred while publishing the quiz. Please try again.', 'error');
                 });
         }
     }
 
     // Unpublish quiz function
     function unpublishQuiz(quizId) {
-        console.log('Unpublishing quiz:', quizId);
+        console.log('🔄 Unpublishing quiz:', quizId);
 
         if (confirm('Are you sure you want to unpublish this quiz?\n\n❌ Students will no longer be able to see or attempt it.\n❌ Existing results will be preserved.')) {
-            showToast('Unpublishing quiz...', 'info');
+            showToast('📤 Unpublishing quiz...', 'info');
 
             fetch(`/teacher/quizzes/${quizId}/unpublish`, {
                 method: 'POST',
@@ -310,53 +325,54 @@
                 credentials: 'include'
             })
                 .then(response => {
+                    console.log('📨 Response status:', response.status);
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Unpublish response:', data);
+                    console.log('✅ Unpublish response:', data);
                     if (data.success) {
-                        showToast(data.message, 'success');
+                        showToast('🎉 ' + data.message, 'success');
                         setTimeout(() => {
                             window.location.reload();
                         }, 2000);
                     } else {
-                        showToast(data.message, 'error');
+                        showToast('❌ ' + data.message, 'error');
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    showToast('An error occurred while unpublishing the quiz. Please try again.', 'error');
+                    console.error('🔴 Error:', error);
+                    showToast('❌ An error occurred while unpublishing the quiz. Please try again.', 'error');
                 });
         }
     }
 
     // Other utility functions
     function createNewQuiz() {
-        showToast('Redirecting to quiz creation...', 'info');
+        showToast('📝 Redirecting to quiz creation...', 'info');
         setTimeout(() => {
             window.location.href = '/teacher/quizzes/create';
         }, 1000);
     }
 
     function editQuiz(quizId) {
-        showToast('Opening quiz editor...', 'info');
+        showToast('✏️ Opening quiz editor...', 'info');
         setTimeout(() => {
             window.location.href = `/teacher/quizzes/${quizId}/edit`;
         }, 1000);
     }
 
     function viewResults(quizId) {
-        showToast('Loading quiz results...', 'info');
+        showToast('📊 Loading quiz results...', 'info');
         setTimeout(() => {
             window.location.href = `/teacher/quizzes/${quizId}/results`;
         }, 1000);
     }
 
     function refreshQuizzes() {
-        showToast('Refreshing quizzes...', 'info');
+        showToast('🔄 Refreshing quizzes...', 'info');
         setTimeout(() => {
             window.location.reload();
         }, 500);
@@ -376,15 +392,42 @@
         }
     });
 
-    // Show welcome message
+    // Show welcome message and debug info
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Teacher dashboard loaded successfully');
+        console.log('🎯 Teacher dashboard loaded successfully');
+
+        // Log quiz count for debugging
+        const quizzes = document.querySelectorAll('.quiz-card');
+        console.log(`📊 Found ${quizzes.length} quizzes`);
 
         // Check if there are any quizzes that need attention
         const draftQuizzes = document.querySelectorAll('.quiz-card .draft-badge');
         if (draftQuizzes.length > 0) {
-            console.log(`Found ${draftQuizzes.length} draft quizzes`);
+            console.log(`📝 Found ${draftQuizzes.length} draft quizzes`);
         }
+
+        const publishedQuizzes = document.querySelectorAll('.quiz-card .published-badge');
+        if (publishedQuizzes.length > 0) {
+            console.log(`🚀 Found ${publishedQuizzes.length} published quizzes`);
+        }
+
+        // Show welcome toast
+        setTimeout(() => {
+            showToast('👋 Welcome to your Teacher Dashboard!', 'success');
+        }, 1000);
+    });
+
+    // Add click handlers for disabled publish buttons to show tooltip
+    document.addEventListener('DOMContentLoaded', function() {
+        const disabledPublishButtons = document.querySelectorAll('button[disabled]');
+        disabledPublishButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (this.disabled) {
+                    showToast('❌ Please add questions to this quiz before publishing.', 'warning');
+                    e.preventDefault();
+                }
+            });
+        });
     });
 </script>
 </body>
