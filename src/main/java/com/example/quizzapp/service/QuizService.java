@@ -1,15 +1,16 @@
+// src/main/java/com/example/quizzapp/service/QuizService.java
 package com.example.quizzapp.service;
 
-import com.example.quizzapp.dto.QuizDTO;
 import com.example.quizzapp.model.Quiz;
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.repository.QuizRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.quizzapp.model.UserRole;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Random;
 
 @Service
 public class QuizService {
@@ -20,131 +21,133 @@ public class QuizService {
     @Autowired
     private UserService userService;
 
-    // Publish/Unpublish methods
-    public boolean publishQuiz(Long quizId, Long teacherId) {
-        Optional<Quiz> quizOpt = quizRepository.findById(quizId);
+    private final Random random = new Random();
 
-        if (quizOpt.isPresent() && quizOpt.get().getTeacher().getId().equals(teacherId)) {
-            Quiz quiz = quizOpt.get();
-            if (!quiz.getQuestions().isEmpty()) {
-                quiz.setPublished(true);
-                quizRepository.save(quiz);
-                return true;
-            }
+    public Quiz createQuiz(String title, String description, Long teacherId, Integer timePerQuestion) {
+        User teacher = userService.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+
+        if (teacher.getRole() != UserRole.TEACHER) {
+            throw new RuntimeException("Only teachers can create quizzes");
         }
-        return false;
+
+        Quiz quiz = new Quiz();
+        quiz.setTitle(title);
+        quiz.setDescription(description);
+        quiz.setCreatedBy(teacher);
+        quiz.setTimePerQuestion(timePerQuestion != null ? timePerQuestion : 30);
+        quiz.setJoinCode(generateUniqueJoinCode());
+
+        return quizRepository.save(quiz);
     }
 
-    public boolean unpublishQuiz(Long quizId, Long teacherId) {
-        Optional<Quiz> quizOpt = quizRepository.findById(quizId);
+    public Quiz publishQuiz(Long quizId, Long teacherId) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
 
-        if (quizOpt.isPresent() && quizOpt.get().getTeacher().getId().equals(teacherId)) {
-            Quiz quiz = quizOpt.get();
-            quiz.setPublished(false);
-            quizRepository.save(quiz);
-            return true;
+        if (!quiz.getCreatedBy().getId().equals(teacherId)) {
+            throw new RuntimeException("You can only publish your own quizzes");
         }
-        return false;
+
+        quiz.setPublished(true);
+        return quizRepository.save(quiz);
     }
 
-    // Get quizzes methods
-    public List<Quiz> getAvailableQuizzes() {
-        return quizRepository.findByPublishedTrue();
+    public Quiz unpublishQuiz(Long quizId, Long teacherId) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+
+        if (!quiz.getCreatedBy().getId().equals(teacherId)) {
+            throw new RuntimeException("You can only unpublish your own quizzes");
+        }
+
+        quiz.setPublished(false);
+        return quizRepository.save(quiz);
     }
 
-    public List<Quiz> getAllActiveQuizzes() {
-        return quizRepository.findByPublishedTrue();
-    }
-
-    public List<QuizDTO> getPublishedQuizzes() {
-        return quizRepository.findByPublishedTrueOrderByPublishedAtDesc()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Optional<Quiz> joinQuiz(String joinCode, Long studentId) {
+        Optional<Quiz> quizOpt = quizRepository.findByJoinCodeAndPublishedTrue(joinCode);
+        if (quizOpt.isPresent()) {
+            userService.updateUserCurrentQuiz(studentId, joinCode);
+        }
+        return quizOpt;
     }
 
     public List<Quiz> getQuizzesByTeacher(Long teacherId) {
-        User teacher = userService.getUserById(teacherId);
-        return quizRepository.findByTeacher(teacher);
+        User teacher = userService.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+        return quizRepository.findByCreatedBy(teacher);
     }
 
-    public List<QuizDTO> getQuizzesByTeacherAsDTO(Long teacherId) {
-        User teacher = userService.getUserById(teacherId);
-        return quizRepository.findByTeacher(teacher)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public List<Quiz> getPublishedQuizzes() {
+        return quizRepository.findByPublishedTrue();
     }
 
-    public List<QuizDTO> getPublishedQuizzesByTeacher(Long teacherId) {
-        User teacher = userService.getUserById(teacherId);
-        return quizRepository.findByTeacherAndPublished(teacher, true)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Optional<Quiz> getQuizByJoinCode(String joinCode) {
+        return quizRepository.findByJoinCode(joinCode);
     }
 
-    public Optional<QuizDTO> getPublishedQuiz(Long quizId) {
-        return quizRepository.findByIdAndPublishedTrue(quizId)
-                .map(this::convertToDTO);
+    public Optional<Quiz> findById(Long quizId) {
+        return quizRepository.findById(quizId);
     }
 
-    // Stats methods for DashboardController
-    public long getQuizzesAttemptedCount(Long studentId) {
-        // TODO: Implement actual logic using QuizAttemptRepository
-        return 0L;
+    private String generateUniqueJoinCode() {
+        String code;
+        do {
+            code = String.format("%06d", random.nextInt(1000000));
+        } while (quizRepository.existsByJoinCode(code));
+        return code;
     }
 
-    public double getAverageScore(Long studentId) {
-        // TODO: Implement actual logic using QuizAttemptRepository
-        return 0.0;
-    }
+    public void deleteQuiz(Long quizId, Long teacherId) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
 
-    public long getTotalScore(Long studentId) {
-        // TODO: Implement actual logic using QuizAttemptRepository
-        return 0L;
-    }
+        if (!quiz.getCreatedBy().getId().equals(teacherId)) {
+            throw new RuntimeException("You can only delete your own quizzes");
+        }
 
-    public long getQuizzesCreatedCount(Long teacherId) {
-        User teacher = userService.getUserById(teacherId);
-        return quizRepository.countByTeacher(teacher);
+        quizRepository.delete(quiz);
     }
+    // Add these methods to your existing QuizService.java
 
-    public long getTotalParticipants(Long teacherId) {
-        // TODO: Implement actual logic - count unique students who attempted teacher's quizzes
-        return 0L;
-    }
-
-    // Utility methods
-    public boolean isQuizOwner(Long quizId, Long teacherId) {
-        Optional<Quiz> quiz = quizRepository.findById(quizId);
-        return quiz.isPresent() && quiz.get().getTeacher().getId().equals(teacherId);
+    public List<Quiz> getTeacherQuizzes(User teacher) {
+        return quizRepository.findByCreatedBy(teacher);
     }
 
     public Optional<Quiz> getQuizById(Long quizId) {
         return quizRepository.findById(quizId);
     }
 
-    public Quiz saveQuiz(Quiz quiz) {
+    public Quiz save(Quiz quiz) {
         return quizRepository.save(quiz);
     }
 
-    public void deleteQuiz(Long quizId) {
-        quizRepository.deleteById(quizId);
+    public Optional<Quiz> findQuizByCode(String code) {
+        return quizRepository.findByJoinCode(code);
     }
 
-    // Conversion method
-    private QuizDTO convertToDTO(Quiz quiz) {
-        QuizDTO dto = new QuizDTO();
-        dto.setId(quiz.getId());
-        dto.setTitle(quiz.getTitle());
-        dto.setDescription(quiz.getDescription());
-        dto.setPublished(quiz.isPublished());
-        dto.setPublishedAt(quiz.getPublishedAt());
-        dto.setCreatedAt(quiz.getCreatedAt());
-        dto.setTeacherId(quiz.getTeacher().getId());
-        dto.setTeacherName(quiz.getTeacher().getUsername());
-        dto.setQuestionCount(quiz.getQuestions().size());
-        return dto;
+    public Optional<Quiz> getPublishedQuizById(Long quizId) {
+        return quizRepository.findByIdAndPublishedTrue(quizId);
+    }
+
+    public List<Quiz> getPublishedQuizzesByTeacher(Long teacherId) {
+        User teacher = userService.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+        return quizRepository.findByCreatedByAndPublishedTrue(teacher);
+    }
+    public List<Quiz> getAllPublishedQuizzes() {
+        return quizRepository.findByPublishedTrue();
+    }
+
+    public Quiz addQuestionToQuiz(Long quizId, String questionText, List<String> options, int correctOptionIndex, int points) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+
+        // Create question logic here
+        // You'll need to implement this based on your Question entity
+        // This is a placeholder - implement based on your actual Question class
+        return quizRepository.save(quiz);
+
     }
 }

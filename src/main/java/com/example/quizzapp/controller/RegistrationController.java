@@ -1,7 +1,6 @@
 package com.example.quizzapp.controller;
 
 import com.example.quizzapp.model.User;
-import com.example.quizzapp.model.UserRole;
 import com.example.quizzapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.example.quizzapp.model.UserRole;
 
 @Controller
 public class RegistrationController {
@@ -22,7 +22,7 @@ public class RegistrationController {
 
     @GetMapping("/register")
     public String showRegisterPage() {
-        return "register";
+        return "auth/register";
     }
 
     @PostMapping("/register")
@@ -50,7 +50,6 @@ public class RegistrationController {
                 return "redirect:/register";
             }
 
-            // Validate password length
             if (password.length() < 6) {
                 redirectAttributes.addFlashAttribute("error", "Password must be at least 6 characters long!");
                 redirectAttributes.addFlashAttribute("username", username);
@@ -58,7 +57,7 @@ public class RegistrationController {
                 return "redirect:/register";
             }
 
-            // Validate role
+            // Convert string to UserRole enum
             UserRole userRole;
             try {
                 userRole = UserRole.valueOf(role.toUpperCase());
@@ -69,18 +68,17 @@ public class RegistrationController {
                 return "redirect:/register";
             }
 
-            // Create new user
+            // Create new user (UserRole not String)
             User user = new User(username, email, passwordEncoder.encode(password), userRole);
             User savedUser = userService.save(user);
 
             System.out.println("User registered successfully: " + savedUser.getId());
 
             redirectAttributes.addFlashAttribute("success", "Registration successful! You can now login with your credentials.");
-            return "redirect:/login";
+            return "redirect:/auth/login";
 
         } catch (Exception e) {
             System.out.println("Registration error: " + e.getMessage());
-            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "Registration failed: " + e.getMessage());
             redirectAttributes.addFlashAttribute("username", username);
             redirectAttributes.addFlashAttribute("email", email);

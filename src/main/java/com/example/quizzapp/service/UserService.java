@@ -1,12 +1,13 @@
 package com.example.quizzapp.service;
 
 import com.example.quizzapp.model.User;
-import com.example.quizzapp.model.UserRole;
 import com.example.quizzapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.quizzapp.model.UserRole;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,36 +18,6 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-    // Add these methods for password reset functionality
-    public void sendPasswordResetEmail(String email) {
-        // For now, just check if email exists
-        Optional<User> user = userRepository.findByEmail(email);
-        if (user.isEmpty()) {
-            throw new RuntimeException("Email not found");
-        }
-        // In a real application, you would:
-        // 1. Generate a reset token
-        // 2. Save it to the database with expiration
-        // 3. Send email with reset link
-        throw new RuntimeException("Password reset email functionality not implemented yet");
-    }
-
-    public boolean validateResetToken(String token) {
-        // For now, return false
-        // In a real application, you would validate the token against the database
-        return false;
-    }
-
-    public boolean resetPassword(String token, String newPassword) {
-        // For now, return false
-        // In a real application, you would:
-        // 1. Validate the token
-        // 2. Find the user associated with the token
-        // 3. Update the password
-        // 4. Invalidate the token
-        return false;
-    }
 
     public User registerUser(String username, String email, String password, UserRole role) {
         if (userRepository.existsByUsername(username)) {
@@ -66,41 +37,37 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User registerUser(com.example.quizzapp.dto.SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            throw new RuntimeException("Username is already taken!");
-        }
-
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new RuntimeException("Email is already in use!");
-        }
-
-        User user = new User();
-        user.setUsername(signUpRequest.getUsername());
-        user.setEmail(signUpRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
-        user.setRole(signUpRequest.getRole());
-
-        return userRepository.save(user);
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
-    public Long getUserIdByUsername(String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        return user.map(User::getId).orElse(null);
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 
-    public User getUserById(Long id) {
-        Optional<User> user = userRepository.findById(id);
-        return user.orElse(null);
+    public List<User> getStudentsByQuizCode(String quizCode) {
+        return userRepository.findByRoleAndCurrentQuizCode(UserRole.STUDENT, quizCode);
     }
 
-    public User getUserByUsername(String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        return user.orElse(null);
+    public List<User> getAllTeachers() {
+        return userRepository.findByRole(UserRole.TEACHER);
     }
-    // Add this method to your existing UserService class
-    public User save(User user) {
-        return userRepository.save(user);
+
+    public List<User> getAllStudents() {
+        return userRepository.findByRole(UserRole.STUDENT);
+    }
+
+    public User updateUserCurrentQuiz(Long studentId, String quizCode) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        student.setCurrentQuizCode(quizCode);
+        return userRepository.save(student);
+    }
+
+    public boolean isTeacher(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> user.getRole() == UserRole.TEACHER)
+                .orElse(false);
     }
 
     public boolean existsByUsername(String username) {
@@ -109,5 +76,16 @@ public class UserService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+
+
+
+    // Add this method to your UserService.java
+    public Optional<User> findByUsernameById(Long userId) {
+        return userRepository.findById(userId);
     }
 }

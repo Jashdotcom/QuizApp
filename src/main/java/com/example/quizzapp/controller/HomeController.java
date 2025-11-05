@@ -8,17 +8,6 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "redirect:/login";
+        return "redirect:/auth/login";
     }
-
-    @GetMapping("/login")
-    public String login() {
-        return "login";
-    }
-
-    // REMOVE this method - it's causing conflict
-    // @GetMapping("/register")
-    // public String register() {
-    //     return "register";
-    // }
 }

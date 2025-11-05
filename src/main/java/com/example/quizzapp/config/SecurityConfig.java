@@ -33,68 +33,45 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Enable CORS and disable CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-
-                // Set session management to stateless
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Set permissions on endpoints
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints - no authentication required
-                        .requestMatchers(
-                                "/", "/home", "/register", "/auth/**",
-                                "/css/**", "/js/**", "/images/**", "/webjars/**"
-                        ).permitAll()
-
-                        // Dashboard endpoints - require authentication
-                        .requestMatchers("/dashboard/**").authenticated()
-
-                        // Teacher specific endpoints
+                        // Allow public access to login/register and static
+                        .requestMatchers("/", "/home", "/register", "/auth/login", "/auth/register",
+                                "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                        // Allow public access to quiz code join endpoint if needed
+                        .requestMatchers("/quizzes/**", "/quiz/join").permitAll()
+                        // Teacher/Student endpoints require roles
                         .requestMatchers("/teacher/**").hasRole("TEACHER")
-
-                        // Student specific endpoints
                         .requestMatchers("/student/**").hasRole("STUDENT")
-
-                        // Quiz endpoints
-                        .requestMatchers("/quiz/create", "/quiz/edit/**", "/quiz/delete/**").hasRole("TEACHER")
-                        .requestMatchers("/quiz/attempt/**", "/quiz/join").hasRole("STUDENT")
-
-                        // Private endpoints - require authentication
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
-
-                // Configure form login
                 .formLogin(form -> form
                         .loginPage("/auth/login")
-                        .loginProcessingUrl("/auth/login")
+                        .loginProcessingUrl("/auth/login") // this matches form 'action'
                         .defaultSuccessUrl("/dashboard", true)
                         .failureUrl("/auth/login?error=true")
                         .permitAll()
                 )
-
-                // Configure logout
                 .logout(logout -> logout
-                        .logoutUrl("/auth/logout")
-                        .logoutSuccessUrl("/?logout=true")
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/auth/login?logout=true")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 );
-
         return http.build();
     }
 
-    // CORS configuration to allow requests from browser
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Allow all origins in development
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

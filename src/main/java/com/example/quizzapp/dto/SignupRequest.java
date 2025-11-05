@@ -1,9 +1,9 @@
 package com.example.quizzapp.dto;
 
-import com.example.quizzapp.model.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.example.quizzapp.model.UserRole; // Add this import
 
 public class SignupRequest {
     @NotBlank

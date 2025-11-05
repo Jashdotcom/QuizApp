@@ -24,11 +24,11 @@ public class QuizAttempt {
     private LocalDateTime completedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user; // STUDENT
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id")
+    @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
     @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -38,4 +38,8 @@ public class QuizAttempt {
     protected void onCreate() {
         startedAt = LocalDateTime.now();
     }
+    public void setUser(User user) { this.user = user; }
+    public void setQuiz(Quiz quiz) { this.quiz = quiz; }
+    public void setScore(int score) { this.score = score; }
+    public int getScore() { return score; }
 }

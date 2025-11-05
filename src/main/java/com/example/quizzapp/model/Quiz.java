@@ -12,35 +12,42 @@ public class Quiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String title;
+
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "teacher_id")
-    private User teacher;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Column(unique = true)
+    private String joinCode; // 6-digit code for students to join
+
     private boolean published = false;
+
+    private LocalDateTime createdAt;
+
+    private Integer timePerQuestion = 30; // Default 30 seconds per question
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
-
-    private LocalDateTime publishedAt;
-    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
+    // Constructors
     public Quiz() {}
 
-    public Quiz(String title, String description, User teacher) {
+    public Quiz(String title, String description, User createdBy) {
         this.title = title;
         this.description = description;
-        this.teacher = teacher;
+        this.createdBy = createdBy;
     }
 
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -50,23 +57,31 @@ public class Quiz {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public User getTeacher() { return teacher; }
-    public void setTeacher(User teacher) { this.teacher = teacher; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+
+    public String getJoinCode() { return joinCode; }
+    public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
+
+    public boolean isPublished() { return published; }
+    public void setPublished(boolean published) { this.published = published; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Integer getTimePerQuestion() { return timePerQuestion; }
+    public void setTimePerQuestion(Integer timePerQuestion) { this.timePerQuestion = timePerQuestion; }
 
     public List<Question> getQuestions() { return questions; }
     public void setQuestions(List<Question> questions) { this.questions = questions; }
 
-    public boolean isPublished() { return published; }
-    public void setPublished(boolean published) {
-        this.published = published;
-        if (published) {
-            this.publishedAt = LocalDateTime.now();
-        }
+    public void addQuestion(Question question) {
+        questions.add(question);
+        question.setQuiz(this);
     }
 
-    public LocalDateTime getPublishedAt() { return publishedAt; }
-    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void removeQuestion(Question question) {
+        questions.remove(question);
+        question.setQuiz(null);
+    }
 }

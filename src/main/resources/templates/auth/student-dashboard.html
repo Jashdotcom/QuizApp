@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - QuizApp</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --info: #17a2b8;
+            --warning: #ffc107;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem 1rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 10px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.9);
+            margin: 1rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .welcome-message h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .feature-card {
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .feature-card h3 {
+            color: white;
+        }
+
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .quiz-list {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .quiz-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .quiz-item:last-child {
+            border-bottom: none;
+        }
+
+        .quiz-info h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .quiz-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .btn-join {
+            background: var(--success);
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .join-quiz-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .results-list {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .result-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .percentage {
+            background: var(--primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">QuizApp</div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active" data-section="overview">Overview</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-section="join-quiz">Join Quiz</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-section="my-results">My Results</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-section="leaderboard">Leaderboard</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="logout()">Logout</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="welcome-message">
+                <h1>Welcome, <span id="studentName">Student</span>!</h1>
+                <p>Ready to test your knowledge?</p>
+            </div>
+            <div class="user-info">
+                <span>Student Account</span>
+            </div>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overview-section" class="dashboard-section">
+            <div class="dashboard-cards">
+                <div class="card feature-card" onclick="showSection('join-quiz')">
+                    <div class="icon">🎯</div>
+                    <h3>Join Quiz</h3>
+                    <p>Enter a code to join a live quiz</p>
+                </div>
+
+                <div class="card feature-card" onclick="showSection('my-results')">
+                    <div class="icon">📊</div>
+                    <h3>My Results</h3>
+                    <p>View your quiz performance</p>
+                </div>
+
+                <div class="card feature-card" onclick="showSection('leaderboard')">
+                    <div class="icon">🏆</div>
+                    <h3>Leaderboard</h3>
+                    <p>See where you rank</p>
+                </div>
+            </div>
+
+            <div class="stats-card card">
+                <h3>Your Stats</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="quizzesTaken">0</div>
+                        <div class="stat-label">Quizzes Taken</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="averageScore">0%</div>
+                        <div class="stat-label">Average Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="bestScore">0%</div>
+                        <div class="stat-label">Best Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalPoints">0</div>
+                        <div class="stat-label">Total Points</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-list">
+                <h3>Available Quizzes</h3>
+                <div id="availableQuizzes">
+                    <p>Loading available quizzes...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Quiz Section -->
+        <div id="join-quiz-section" class="dashboard-section hidden">
+            <h2>Join a Quiz</h2>
+            <div class="join-quiz-form">
+                <div class="form-group">
+                    <label for="joinCode">Enter Quiz Code</label>
+                    <input type="text" id="joinCode" class="form-control" placeholder="e.g., 123456" maxlength="6">
+                </div>
+                <button class="btn btn-primary" onclick="joinQuiz()" style="width: 100%;">Join Quiz</button>
+            </div>
+
+            <div id="joinSuccess" class="hidden" style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
+                <h4>Successfully Joined Quiz!</h4>
+                <p id="quizInfo"></p>
+                <button class="btn btn-primary" onclick="startQuiz()">Start Quiz</button>
+            </div>
+        </div>
+
+        <!-- My Results Section -->
+        <div id="my-results-section" class="dashboard-section hidden">
+            <h2>My Results</h2>
+            <div class="results-list">
+                <div id="resultsContent">
+                    <p>Loading your results...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Section -->
+        <div id="leaderboard-section" class="dashboard-section hidden">
+            <h2>Leaderboard</h2>
+            <div class="results-list">
+                <div id="leaderboardContent">
+                    <p>Select a quiz to view leaderboard</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.role !== 'STUDENT') {
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('studentName').textContent = user.username;
+
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Update active link
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+
+            // Show corresponding section
+            const section = this.dataset.section;
+            showSection(section);
+        });
+    });
+
+    function showSection(section) {
+        document.querySelectorAll('.dashboard-section').forEach(s => s.classList.add('hidden'));
+        document.getElementById(`${section}-section`).classList.remove('hidden');
+
+        // Load section data
+        if (section === 'overview') loadOverview();
+        else if (section === 'my-results') loadMyResults();
+        else if (section === 'leaderboard') loadLeaderboard();
+    }
+
+    // Load overview data
+    async function loadOverview() {
+        try {
+            // Load available quizzes
+            const response = await fetch('http://localhost:8080/api/quizzes/published');
+            const quizzes = await response.json();
+
+            const quizzesHTML = quizzes.map(quiz => `
+                    <div class="quiz-item">
+                        <div class="quiz-info">
+                            <h4>${quiz.title}</h4>
+                            <p>${quiz.description}</p>
+                            <div class="quiz-meta">
+                                <span>Code: <strong>${quiz.joinCode}</strong></span>
+                                <span>Questions: ${quiz.questions ? quiz.questions.length : 0}</span>
+                                <span>Time per question: ${quiz.timePerQuestion}s</span>
+                            </div>
+                        </div>
+                        <div class="quiz-actions">
+                            <button class="btn btn-join" onclick="quickJoin('${quiz.joinCode}')">Join Now</button>
+                        </div>
+                    </div>
+                `).join('') || '<p>No available quizzes at the moment</p>';
+
+            document.getElementById('availableQuizzes').innerHTML = quizzesHTML;
+
+            // Load student stats
+            await loadStudentStats();
+
+        } catch (error) {
+            console.error('Error loading overview:', error);
+            document.getElementById('availableQuizzes').innerHTML = '<p>Error loading quizzes</p>';
+        }
+    }
+
+    // Load student stats
+    async function loadStudentStats() {
+        try {
+            const response = await fetch(`http://localhost:8080/api/participation/student/${user.id}`);
+            const results = await response.json();
+
+            document.getElementById('quizzesTaken').textContent = results.length;
+
+            if (results.length > 0) {
+                const totalScore = results.reduce((sum, result) => sum + result.score, 0);
+                const averageScore = totalScore / results.length;
+                const bestScore = Math.max(...results.map(r => r.score));
+                const totalPoints = results.reduce((sum, result) => sum + result.score, 0);
+
+                document.getElementById('averageScore').textContent = Math.round(averageScore) + '%';
+                document.getElementById('bestScore').textContent = Math.round(bestScore) + '%';
+                document.getElementById('totalPoints').textContent = totalPoints;
+            }
+
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+
+    // Join quiz function
+    async function joinQuiz() {
+        const joinCode = document.getElementById('joinCode').value.trim();
+
+        if (!joinCode) {
+            alert('Please enter a quiz code');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:8080/api/quizzes/join', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    joinCode: joinCode,
+                    studentId: user.id
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('quizInfo').textContent =
+                    `You've joined: ${data.title}`;
+                document.getElementById('joinSuccess').classList.remove('hidden');
+
+                // Store quiz info for starting
+                localStorage.setItem('currentQuiz', JSON.stringify({
+                    id: data.quizId,
+                    title: data.title,
+                    joinCode: joinCode
+                }));
+            } else {
+                alert(data.message || 'Failed to join quiz');
+            }
+        } catch (error) {
+            alert('Error joining quiz: ' + error.message);
+        }
+    }
+
+    // Quick join from overview
+    function quickJoin(joinCode) {
+        document.getElementById('joinCode').value = joinCode;
+        showSection('join-quiz');
+        joinQuiz();
+    }
+
+    // Start quiz
+    function startQuiz() {
+        const quiz = JSON.parse(localStorage.getItem('currentQuiz'));
+        if (quiz) {
+            window.location.href = `quiz-attempt.html?quizId=${quiz.id}&code=${quiz.joinCode}`;
+        }
+    }
+
+    // Load my results
+    async function loadMyResults() {
+        try {
+            const response = await fetch(`http://localhost:8080/api/participation/student/${user.id}`);
+            const results = await response.json();
+
+            if (results.length === 0) {
+                document.getElementById('resultsContent').innerHTML = '<p>No quiz results yet</p>';
+                return;
+            }
+
+            const resultsHTML = results.map(result => `
+                    <div class="result-item">
+                        <div class="result-info">
+                            <h4>${result.quiz.title}</h4>
+                            <div class="quiz-meta">
+                                <span>Date: ${new Date(result.participatedAt).toLocaleDateString()}</span>
+                                <span>Time Taken: ${result.timeTaken}s</span>
+                            </div>
+                        </div>
+                        <div class="result-score">
+                            <div class="score">${result.score} points</div>
+                            <div class="percentage">${Math.round(result.correctAnswers * 100 / result.totalQuestions)}%</div>
+                            <div style="font-size: 0.8rem; color: #666;">
+                                ${result.correctAnswers}/${result.totalQuestions} correct
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            document.getElementById('resultsContent').innerHTML = resultsHTML;
+
+        } catch (error) {
+            console.error('Error loading results:', error);
+            document.getElementById('resultsContent').innerHTML = '<p>Error loading results</p>';
+        }
+    }
+
+    // Load leaderboard
+    async function loadLeaderboard() {
+        // For now, show a message - you can implement specific quiz leaderboards
+        document.getElementById('leaderboardContent').innerHTML = `
+                <div class="result-item" style="background: #f8f9fa; border-radius: 10px;">
+                    <div class="result-info">
+                        <h4>Global Ranking</h4>
+                        <p>Your overall performance across all quizzes</p>
+                    </div>
+                    <div class="result-score">
+                        <div class="score">Coming Soon</div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 2rem; color: #666;">
+                    Select a specific quiz to view detailed leaderboard
+                </p>
+            `;
+    }
+
+    // Logout
+    function logout() {
+        localStorage.removeItem('user');
+        localStorage.removeItem('currentQuiz');
+        window.location.href = 'login.html';
+    }
+
+    // Initialize dashboard
+    loadOverview();
+</script>
+</body>
+</html>

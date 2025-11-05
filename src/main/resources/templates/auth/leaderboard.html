@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - QuizApp</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --gold: #ffd700;
+            --silver: #c0c0c0;
+            --bronze: #cd7f32;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #333;
+        }
+
+        .leaderboard-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 2rem;
+            top: 2rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .quiz-title {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .leaderboard-content {
+            padding: 2rem;
+        }
+
+        .top-three {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: end;
+        }
+
+        .podium-item {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 15px;
+            background: #f8f9fa;
+        }
+
+        .podium-item.gold {
+            background: linear-gradient(135deg, var(--gold), #ffed4e);
+            order: 2;
+        }
+
+        .podium-item.silver {
+            background: linear-gradient(135deg, var(--silver), #e8e8e8);
+            order: 1;
+        }
+
+        .podium-item.bronze {
+            background: linear-gradient(135deg, var(--bronze), #e9b474);
+            order: 3;
+        }
+
+        .rank {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .podium-item.gold .rank {
+            color: #b8860b;
+        }
+
+        .podium-item.silver .rank {
+            color: #808080;
+        }
+
+        .podium-item.bronze .rank {
+            color: #8b4513;
+        }
+
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .leaderboard-list {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .leaderboard-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            font-weight: bold;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .leaderboard-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s;
+        }
+
+        .leaderboard-item:hover {
+            background: #f8f9fa;
+        }
+
+        .leaderboard-item.current-user {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .rank-number {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .score {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .time {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-item.current-user .time {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .medal {
+            font-size: 1.2rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .top-three {
+                grid-template-columns: 1fr;
+            }
+
+            .leaderboard-header,
+            .leaderboard-item {
+                grid-template-columns: 60px 1fr 80px;
+            }
+
+            .time {
+                display: none;
+            }
+
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="leaderboard-container">
+    <div class="header">
+        <a href="student-dashboard.html" class="back-btn">← Back</a>
+        <h1 class="quiz-title" id="leaderboardTitle">Leaderboard</h1>
+        <p id="quizDescription">Top performers</p>
+    </div>
+
+    <div class="leaderboard-content">
+        <div class="top-three" id="topThree">
+            <!-- Top 3 will be dynamically added -->
+        </div>
+
+        <div class="leaderboard-list">
+            <div class="leaderboard-header">
+                <div>Rank</div>
+                <div>Player</div>
+                <div>Score</div>
+                <div>Time</div>
+            </div>
+
+            <div id="leaderboardList">
+                <div class="no-results">
+                    <p>Loading leaderboard...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const quizId = urlParams.get('quizId');
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // Load leaderboard data
+    async function loadLeaderboard() {
+        if (!quizId) {
+            document.getElementById('leaderboardList').innerHTML = `
+                    <div class="no-results">
+                        <p>No quiz selected</p>
+                    </div>
+                `;
+            return;
+        }
+
+        try {
+            // Load quiz info
+            const quizResponse = await fetch(`http://localhost:8080/api/quizzes/${quizId}`);
+            const quiz = await quizResponse.json();
+
+            document.getElementById('leaderboardTitle').textContent = `${quiz.title} - Leaderboard`;
+            document.getElementById('quizDescription').textContent = quiz.description;
+
+            // Load leaderboard
+            const leaderboardResponse = await fetch(`http://localhost:8080/api/participation/leaderboard/${quizId}`);
+            const leaderboard = await leaderboardResponse.json();
+
+            if (leaderboard.length === 0) {
+                document.getElementById('leaderboardList').innerHTML = `
+                        <div class="no-results">
+                            <p>No participants yet</p>
+                            <p>Be the first to take this quiz!</p>
+                        </div>
+                    `;
+                return;
+            }
+
+            // Display top 3
+            displayTopThree(leaderboard.slice(0, 3));
+
+            // Display rest of the leaderboard
+            displayLeaderboardList(leaderboard);
+
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            document.getElementById('leaderboardList').innerHTML = `
+                    <div class="no-results">
+                        <p>Error loading leaderboard</p>
+                    </div>
+                `;
+        }
+    }
+
+    // Display top 3
+    function displayTopThree(topThree) {
+        const topThreeHTML = `
+                <div class="podium-item silver">
+                    <div class="rank">2</div>
+                    <div class="player-name">${topThree[1] ? topThree[1].student.username : '---'}</div>
+                    <div class="player-score">${topThree[1] ? topThree[1].score : '0'}</div>
+                </div>
+                <div class="podium-item gold">
+                    <div class="rank">1</div>
+                    <div class="player-name">${topThree[0] ? topThree[0].student.username : '---'}</div>
+                    <div class="player-score">${topThree[0] ? topThree[0].score : '0'}</div>
+                </div>
+                <div class="podium-item bronze">
+                    <div class="rank">3</div>
+                    <div class="player-name">${topThree[2] ? topThree[2].student.username : '---'}</div>
+                    <div class="player-score">${topThree[2] ? topThree[2].score : '0'}</div>
+                </div>
+            `;
+
+        document.getElementById('topThree').innerHTML = topThreeHTML;
+    }
+
+    // Display leaderboard list
+    function displayLeaderboardList(leaderboard) {
+        let leaderboardHTML = '';
+
+        leaderboard.forEach((participation, index) => {
+            const isCurrentUser = participation.student.id === user.id;
+            const rank = index + 1;
+            const medal = rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : '';
+
+            leaderboardHTML += `
+                    <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="rank-number">
+                            ${medal} ${rank}
+                        </div>
+                        <div class="player-info">
+                            <div class="avatar">
+                                ${participation.student.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                ${participation.student.username}
+                                ${isCurrentUser ? ' (You)' : ''}
+                            </div>
+                        </div>
+                        <div class="score">${participation.score}</div>
+                        <div class="time">${participation.timeTaken}s</div>
+                    </div>
+                `;
+        });
+
+        document.getElementById('leaderboardList').innerHTML = leaderboardHTML;
+    }
+
+    // Load leaderboard when page loads
+    window.addEventListener('load', loadLeaderboard);
+</script>
+</body>
+</html>
