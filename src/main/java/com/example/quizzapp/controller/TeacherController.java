@@ -1,162 +1,117 @@
 package com.example.quizzapp.controller;
 
 import com.example.quizzapp.model.Quiz;
-import com.example.quizzapp.model.User;
+import com.example.quizzapp.model.QuizResult;
+import com.example.quizzapp.model.QuizStatus;
+import com.example.quizzapp.repository.ResultRepository;
+import com.example.quizzapp.security.UserPrincipal;
 import com.example.quizzapp.service.QuizService;
-import com.example.quizzapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/api/teacher")
+@Controller
+@RequestMapping("/teacher")
 public class TeacherController {
 
     @Autowired
     private QuizService quizService;
 
     @Autowired
-    private UserService userService;
+    private ResultRepository resultRepository;
 
-    // Get all quizzes for a teacher
-    @GetMapping("/{teacherId}/quizzes")
-    public ResponseEntity<?> getTeacherQuizzes(@PathVariable Long teacherId) {
-        try {
-            Optional<User> teacher = userService.findById(teacherId);
-            if (teacher.isEmpty()) {
-                return ResponseEntity.badRequest().body("Teacher not found");
-            }
-            List<Quiz> quizzes = quizService.getTeacherQuizzes(teacher.get());
-            return ResponseEntity.ok(quizzes);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error fetching quizzes: " + e.getMessage());
+    @GetMapping("/quizzes/create")
+    public String showCreateQuizForm(Model model) {
+        model.addAttribute("quiz", new com.example.quizzapp.model.Quiz());
+        return "quiz-form";
+    }
+
+    @GetMapping("/dashboard")
+    public String teacherDashboard(Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        String teacherName = userPrincipal.getUsername();
+
+        List<Quiz> allQuizzes = quizService.getAllQuizzes();
+        List<Quiz> publishedQuizzes = allQuizzes.stream()
+                .filter(q -> q.getStatus() == QuizStatus.PUBLISHED)
+                .collect(Collectors.toList());
+
+        long publishedCount = publishedQuizzes.size();
+        long totalQuizzes = allQuizzes.size();
+
+        model.addAttribute("quizzes", allQuizzes);
+        model.addAttribute("publishedQuizzes", publishedQuizzes);
+        model.addAttribute("teacherName", teacherName);
+        model.addAttribute("totalQuizzes", totalQuizzes);
+        model.addAttribute("publishedCount", publishedCount);
+
+        return "teacher-dashboard";
+    }
+
+    @GetMapping("/quizzes/{quizId}/students")
+    public String viewQuizStudents(@PathVariable Long quizId, Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Quiz quiz = quizService.getQuizById(quizId).orElse(null);
+
+        if (quiz == null) {
+            model.addAttribute("error", "Quiz not found");
+            return "redirect:/teacher/dashboard";
         }
+
+        List<QuizResult> results = resultRepository.findByQuizId(quizId);
+
+        model.addAttribute("quiz", quiz);
+        model.addAttribute("results", results);
+        model.addAttribute("teacherName", userPrincipal.getUsername());
+
+        return "teacher-quiz-students";
     }
 
-    // Create a new quiz
-    @PostMapping("/{teacherId}/quizzes")
-    public ResponseEntity<?> createQuiz(@PathVariable Long teacherId, @RequestBody CreateQuizRequest request) {
-        try {
-            Quiz quiz = quizService.createQuiz(
-                    request.getTitle(),
-                    request.getDescription(),
-                    teacherId,
-                    request.getTimePerQuestion()
-            );
-            return ResponseEntity.ok(quiz);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error creating quiz: " + e.getMessage());
+    @GetMapping("/quizzes/{quizId}/leaderboard")
+    public String viewQuizLeaderboard(@PathVariable Long quizId, Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Quiz quiz = quizService.getQuizById(quizId).orElse(null);
+
+        if (quiz == null) {
+            model.addAttribute("error", "Quiz not found");
+            return "redirect:/teacher/dashboard";
         }
+
+        List<QuizResult> results = resultRepository.findByQuizId(quizId);
+        results.sort((a, b) -> {
+            int scoreCompare = b.getScore().compareTo(a.getScore());
+            if (scoreCompare != 0) return scoreCompare;
+            return a.getCompletedAt().compareTo(b.getCompletedAt());
+        });
+
+        model.addAttribute("quiz", quiz);
+        model.addAttribute("leaderboard", results);
+        model.addAttribute("teacherName", userPrincipal.getUsername());
+
+        return "teacher-quiz-leaderboard";
     }
 
-    // Publish a quiz
-    @PostMapping("/quizzes/{quizId}/publish")
-    public ResponseEntity<?> publishQuiz(@PathVariable Long quizId, @RequestBody PublishRequest request) {
-        try {
-            Quiz quiz = quizService.publishQuiz(quizId, request.getTeacherId());
-            return ResponseEntity.ok(quiz);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error publishing quiz: " + e.getMessage());
-        }
-    }
+    @GetMapping("/leaderboard")
+    public String viewGlobalLeaderboard(Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-    // Unpublish a quiz
-    @PostMapping("/quizzes/{quizId}/unpublish")
-    public ResponseEntity<?> unpublishQuiz(@PathVariable Long quizId, @RequestBody PublishRequest request) {
-        try {
-            Quiz quiz = quizService.unpublishQuiz(quizId, request.getTeacherId());
-            return ResponseEntity.ok(quiz);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error unpublishing quiz: " + e.getMessage());
-        }
-    }
+        List<QuizResult> allResults = resultRepository.findAll();
+        allResults.sort((a, b) -> {
+            int scoreCompare = b.getScore().compareTo(a.getScore());
+            if (scoreCompare != 0) return scoreCompare;
+            return a.getCompletedAt().compareTo(b.getCompletedAt());
+        });
 
-    // Get quiz by ID
-    @GetMapping("/quizzes/{quizId}")
-    public ResponseEntity<?> getQuizById(@PathVariable Long quizId) {
-        try {
-            Optional<Quiz> quiz = quizService.getQuizById(quizId);
-            if (quiz.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(quiz.get());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error fetching quiz: " + e.getMessage());
-        }
-    }
+        model.addAttribute("leaderboard", allResults);
+        model.addAttribute("teacherName", userPrincipal.getUsername());
 
-    // Delete quiz
-    @DeleteMapping("/quizzes/{quizId}")
-    public ResponseEntity<?> deleteQuiz(@PathVariable Long quizId, @RequestBody DeleteQuizRequest request) {
-        try {
-            quizService.deleteQuiz(quizId, request.getTeacherId());
-            return ResponseEntity.ok("Quiz deleted successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error deleting quiz: " + e.getMessage());
-        }
-    }
-
-    // Add question to quiz
-    @PostMapping("/quizzes/{quizId}/questions")
-    public ResponseEntity<?> addQuestionToQuiz(@PathVariable Long quizId, @RequestBody AddQuestionRequest request) {
-        try {
-            Quiz quiz = quizService.addQuestionToQuiz(
-                    quizId,
-                    request.getQuestionText(),
-                    request.getOptions(),
-                    request.getCorrectOptionIndex(),
-                    request.getPoints()
-            );
-            return ResponseEntity.ok(quiz);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error adding question: " + e.getMessage());
-        }
-    }
-
-    // Request DTO classes
-    public static class CreateQuizRequest {
-        private String title;
-        private String description;
-        private Integer timePerQuestion;
-
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-        public Integer getTimePerQuestion() { return timePerQuestion; }
-        public void setTimePerQuestion(Integer timePerQuestion) { this.timePerQuestion = timePerQuestion; }
-    }
-
-    public static class PublishRequest {
-        private Long teacherId;
-
-        public Long getTeacherId() { return teacherId; }
-        public void setTeacherId(Long teacherId) { this.teacherId = teacherId; }
-    }
-
-    public static class DeleteQuizRequest {
-        private Long teacherId;
-
-        public Long getTeacherId() { return teacherId; }
-        public void setTeacherId(Long teacherId) { this.teacherId = teacherId; }
-    }
-
-    public static class AddQuestionRequest {
-        private String questionText;
-        private List<String> options;
-        private int correctOptionIndex;
-        private int points;
-
-        public String getQuestionText() { return questionText; }
-        public void setQuestionText(String questionText) { this.questionText = questionText; }
-        public List<String> getOptions() { return options; }
-        public void setOptions(List<String> options) { this.options = options; }
-        public int getCorrectOptionIndex() { return correctOptionIndex; }
-        public void setCorrectOptionIndex(int correctOptionIndex) { this.correctOptionIndex = correctOptionIndex; }
-        public int getPoints() { return points; }
-        public void setPoints(int points) { this.points = points; }
+        return "teacher-leaderboard";
     }
 }

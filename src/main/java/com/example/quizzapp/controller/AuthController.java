@@ -1,103 +1,130 @@
 package com.example.quizzapp.controller;
 
-import com.example.quizzapp.dto.LoginRequest;
-import com.example.quizzapp.model.User;
-import com.example.quizzapp.model.UserRole;
+import com.example.quizzapp.dto.SignupRequest;
 import com.example.quizzapp.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import jakarta.validation.Valid;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.HashMap;
-import java.util.Map;
-
-@RestController
-@RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // allow requests from your frontend (HTML/JS)
+@Controller
+@RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    public AuthController(UserService userService) {
+        this.userService = userService;
+    }
 
-    // ✅ REGISTER ENDPOINT
+    // Login page
+    @GetMapping("/login")
+    public String showLoginForm(Model model) {
+        return "auth/login";
+    }
+
+    // Remove the POST mapping - Spring Security handles login processing
+    // @PostMapping("/login") is handled by Spring Security formLogin
+
+    // Registration page
+    @GetMapping("/register")
+    public String showRegistrationForm(Model model) {
+        if (!model.containsAttribute("signupRequest")) {
+            model.addAttribute("signupRequest", new SignupRequest());
+        }
+        return "auth/register";
+    }
+
+    // Process registration
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest request) {
-        try {
-            UserRole role = UserRole.valueOf(request.getRole().toUpperCase());
-
-            User user = userService.registerUser(
-                    request.getUsername(),
-                    request.getEmail(),
-                    request.getPassword(),
-                    role
-            );
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "User registered successfully!");
-            response.put("userId", user.getId());
-            response.put("username", user.getUsername());
-            response.put("role", user.getRole());
-
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid role. Must be STUDENT or TEACHER");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+    public String processRegistration(@Valid @ModelAttribute SignupRequest signupRequest,
+                                      BindingResult result,
+                                      RedirectAttributes redirectAttributes) {
+        if (result.hasErrors()) {
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.signupRequest", result);
+            redirectAttributes.addFlashAttribute("signupRequest", signupRequest);
+            return "redirect:/auth/register";
         }
-    }
 
-    // ✅ LOGIN ENDPOINT
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        if (!signupRequest.getPassword().equals(signupRequest.getConfirmPassword())) {
+            redirectAttributes.addFlashAttribute("error", "Passwords do not match");
+            redirectAttributes.addFlashAttribute("signupRequest", signupRequest);
+            return "redirect:/auth/register";
+        }
+
         try {
-            // Authenticate the user using Spring Security
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            );
-
-            // Fetch user details from the database
-            User user = userService.findByUsernameOrThrow(request.getUsername());
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Login successful");
-            response.put("userId", user.getId());
-            response.put("username", user.getUsername());
-            response.put("role", user.getRole().toString());
-
-            return ResponseEntity.ok(response);
-
+            userService.registerUser(signupRequest);
+            redirectAttributes.addFlashAttribute("success", "Registration successful! Please login.");
+            return "redirect:/auth/login";
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", "Invalid username or password");
-            return ResponseEntity.status(401).body(error);
+            redirectAttributes.addFlashAttribute("error", "Registration failed: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("signupRequest", signupRequest);
+            return "redirect:/auth/register";
         }
     }
 
-    // ✅ INNER CLASS FOR REGISTRATION
-    public static class RegistrationRequest {
-        private String username;
-        private String email;
-        private String password;
-        private String role;
+    // Forgot password page
+    @GetMapping("/forgot-password")
+    public String showForgotPasswordForm() {
+        return "auth/forgot-password";
+    }
 
-        // Getters and Setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+    // Process forgot password
+    @PostMapping("/forgot-password")
+    public String processForgotPassword(@RequestParam String email,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            userService.sendPasswordResetEmail(email);
+            redirectAttributes.addFlashAttribute("success", "Password reset instructions sent to your email");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error sending reset email: " + e.getMessage());
+        }
+        return "redirect:/auth/forgot-password";
+    }
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
+    // Reset password page
+    @GetMapping("/reset-password")
+    public String showResetPasswordForm(@RequestParam String token, Model model) {
+        if (userService.validateResetToken(token)) {
+            model.addAttribute("token", token);
+            return "auth/reset-password";
+        } else {
+            model.addAttribute("error", "Invalid or expired reset token");
+            return "auth/reset-password-error";
+        }
+    }
 
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
+    // Process password reset
+    @PostMapping("/reset-password")
+    public String processResetPassword(@RequestParam String token,
+                                       @RequestParam String password,
+                                       @RequestParam String confirmPassword,
+                                       RedirectAttributes redirectAttributes) {
+        if (!password.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("error", "Passwords do not match");
+            return "redirect:/auth/reset-password?token=" + token;
+        }
 
-        public String getRole() { return role; }
-        public void setRole(String role) { this.role = role; }
+        if (userService.resetPassword(token, password)) {
+            redirectAttributes.addFlashAttribute("success", "Password reset successfully! Please login.");
+            return "redirect:/auth/login";
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Invalid or expired reset token");
+            return "redirect:/auth/forgot-password";
+        }
+    }
+
+    // Logout success page
+    @GetMapping("/logout-success")
+    public String showLogoutSuccess() {
+        return "auth/logout-success";
+    }
+
+    // Access denied page
+    @GetMapping("/access-denied")
+    public String showAccessDenied() {
+        return "auth/access-denied";
     }
 }

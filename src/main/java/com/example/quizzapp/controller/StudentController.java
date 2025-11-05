@@ -1,86 +1,103 @@
 package com.example.quizzapp.controller;
 
-import com.example.quizzapp.model.Quiz;
-import com.example.quizzapp.model.QuizAttempt;
+import com.example.quizzapp.model.QuizResult;
 import com.example.quizzapp.model.User;
-import com.example.quizzapp.service.QuizAttemptService;
-import com.example.quizzapp.service.UserService;
+import com.example.quizzapp.repository.ResultRepository;
+import com.example.quizzapp.repository.UserRepository;
+import com.example.quizzapp.security.UserPrincipal;
+import com.example.quizzapp.service.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import com.example.quizzapp.service.QuizService;
-import com.example.quizzapp.model.UserRole; // Add this import
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/student")
 public class StudentController {
 
     @Autowired
-    private UserService userService;
-    @Autowired
     private QuizService quizService;
+
     @Autowired
-    private QuizAttemptService quizAttemptService;
+    private ResultRepository resultRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/dashboard")
-    public String studentDashboard(@RequestParam Long userId, Model model) {
-        User user = userService.findByUsernameById(userId).orElse(null);
-        List<QuizAttempt> attempts = quizAttemptService.getAttemptsByUser(user);
-        model.addAttribute("student", user);
-        model.addAttribute("attempts", attempts);
-        return "student/dashboard";
-    }
+    public String studentDashboard(Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        String username = userPrincipal.getUsername();
 
-    @GetMapping("/join")
-    public String showJoinQuizForm(@RequestParam Long userId, Model model) {
-        model.addAttribute("userId", userId);
-        return "student/join_quiz";
-    }
-
-    @PostMapping("/join")
-    public String joinQuiz(@RequestParam Long userId,
-                           @RequestParam String joinCode,
-                           Model model) {
-        User user = userService.findByUsernameById(userId).orElse(null);
-        Quiz quiz = quizService.getQuizByJoinCode(joinCode).orElse(null);
-        if (quiz == null || !quiz.isPublished()) {
-            model.addAttribute("error", "Quiz not found or not published.");
-            return "student/join_quiz";
+        Optional<User> userOptional = userRepository.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            model.addAttribute("error", "User not found");
+            return "redirect:/auth/login";
         }
-        model.addAttribute("quiz", quiz);
-        model.addAttribute("userId", userId);
-        return "student/attempt_quiz"; // Page to show/attempt quiz questions
+
+        User user = userOptional.get();
+        List<QuizResult> userResults = resultRepository.findByUser(user);
+
+        long attemptedCount = userResults.size();
+        double averageScore = userResults.stream()
+                .mapToInt(QuizResult::getScore)
+                .average()
+                .orElse(0.0);
+
+        model.addAttribute("quizzes", quizService.getAvailableQuizzes());
+        model.addAttribute("user", user);
+        model.addAttribute("attemptedCount", attemptedCount);
+        model.addAttribute("averageScore", Math.round(averageScore));
+        model.addAttribute("totalScore", userResults.stream().mapToInt(QuizResult::getScore).sum());
+        return "student-dashboard";
     }
 
-    // After student submits quiz answers:
-    @PostMapping("/attempt")
-    public String attemptQuiz(@RequestParam Long userId,
-                              @RequestParam Long quizId,
-                              @RequestParam int score) {
-        User user = userService.findByUsernameById(userId).orElse(null);
-        Quiz quiz = quizService.getQuizById(quizId).orElse(null);
-        quizAttemptService.studentAttemptQuiz(user, quiz, score);
-        return "redirect:/student/dashboard?userId=" + userId;
+    @GetMapping("/quizzes")
+    public String viewQuizzes(Model model) {
+        model.addAttribute("quizzes", quizService.getAllActiveQuizzes());
+        return "student-quizzes";
     }
 
     @GetMapping("/results")
-    public String myResults(@RequestParam Long userId, Model model) {
-        User user = userService.findByUsernameById(userId).orElse(null);
-        List<QuizAttempt> attempts = quizAttemptService.getAttemptsByUser(user);
-        model.addAttribute("attempts", attempts);
-        return "student/results";
+    public String viewMyResults(Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        String username = userPrincipal.getUsername();
+
+        Optional<User> userOptional = userRepository.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            model.addAttribute("error", "User not found");
+            return "redirect:/auth/login";
+        }
+
+        User user = userOptional.get();
+        List<QuizResult> results = resultRepository.findByUser(user);
+        results.sort((a, b) -> b.getCompletedAt().compareTo(a.getCompletedAt()));
+
+        model.addAttribute("results", results);
+        model.addAttribute("user", user);
+
+        return "student-results";
     }
 
-    @GetMapping("/quiz/{quizId}/leaderboard")
-    public String quizLeaderboard(@PathVariable Long quizId, Model model) {
-        Quiz quiz = quizService.getQuizById(quizId).orElse(null);
-        List<QuizAttempt> attempts = quizAttemptService.getAttemptsByQuiz(quiz);
-        attempts.sort((a, b) -> b.getScore());
-        model.addAttribute("quiz", quiz);
-        model.addAttribute("attempts", attempts);
-        return "student/leaderboard";
+    @GetMapping("/leaderboard")
+    public String viewLeaderboard(Model model, Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+
+        List<QuizResult> allResults = resultRepository.findAll();
+        allResults.sort((a, b) -> {
+            int scoreCompare = b.getScore().compareTo(a.getScore());
+            if (scoreCompare != 0) return scoreCompare;
+            return a.getCompletedAt().compareTo(b.getCompletedAt());
+        });
+
+        model.addAttribute("leaderboard", allResults);
+        model.addAttribute("username", userPrincipal.getUsername());
+
+        return "student-leaderboard";
     }
 }

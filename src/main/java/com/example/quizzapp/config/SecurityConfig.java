@@ -33,30 +33,72 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // disable CSRF for APIs
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // use JWT if needed
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/auth/**", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                // Enable CSRF for form submissions (default is enabled)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+
+                // Set session management to stateful (required for form login)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+
+                // Set permissions on endpoints
+                .authorizeHttpRequests(authz -> authz
+                        // Public endpoints - no authentication required
+                        .requestMatchers(
+                                "/", "/home", "/register", "/auth/**",
+                                "/css/**", "/js/**", "/images/**", "/webjars/**"
+                        ).permitAll()
+
+                        // Dashboard endpoints - require authentication
+                        .requestMatchers("/dashboard/**").authenticated()
+
+                        // Teacher specific endpoints
+                        .requestMatchers("/teacher/**").hasRole("TEACHER")
+
+                        // Student specific endpoints
+                        .requestMatchers("/student/**").hasRole("STUDENT")
+
+                        // Quiz endpoints
+                        .requestMatchers("/quizzes/**").permitAll() // Allow quiz access
+                        .requestMatchers("/quiz/create", "/quiz/edit/**", "/quiz/delete/**").hasRole("TEACHER")
+                        .requestMatchers("/quiz/attempt/**", "/quiz/join").hasRole("STUDENT")
+
+                        // Private endpoints - require authentication
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form.disable()) // ❌ disable Spring's default login
-                .logout(logout -> logout.disable()); // optional
+
+                // Configure form login
+                .formLogin(form -> form
+                        .loginPage("/auth/login")
+                        .loginProcessingUrl("/auth/login")
+                        .defaultSuccessUrl("/dashboard", true)
+                        .failureUrl("/auth/login?error=true")
+                        .permitAll()
+                )
+
+                // Configure logout
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/auth/login?logout=true")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                        .permitAll()
+                );
 
         return http.build();
     }
 
-
+    // CORS configuration to allow requests from browser
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Allow all origins in development
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }

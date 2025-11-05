@@ -1,637 +1,192 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - QuizApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --success: #28a745;
-            --info: #17a2b8;
-            --warning: #ffc107;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .dashboard-container {
-            display: flex;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
         }
-
-        .sidebar {
-            width: 250px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 2rem 1rem;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-menu {
-            list-style: none;
-        }
-
-        .nav-item {
-            margin-bottom: 0.5rem;
-        }
-
-        .nav-link {
-            display: block;
-            padding: 12px 16px;
-            text-decoration: none;
-            color: #333;
-            border-radius: 10px;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.9);
-            margin: 1rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #eee;
-        }
-
-        .welcome-message h1 {
-            color: #333;
-            margin-bottom: 0.5rem;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .dashboard-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .card {
+        .dashboard-card {
             background: white;
-            padding: 1.5rem;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             transition: transform 0.3s;
-            cursor: pointer;
         }
-
-        .card:hover {
+        .dashboard-card:hover {
             transform: translateY(-5px);
         }
-
-        .card h3 {
-            margin-bottom: 1rem;
-            color: var(--primary);
+        .action-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
         }
-
-        .feature-card {
-            text-align: center;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
+        .action-card:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
         }
-
-        .feature-card h3 {
-            color: white;
-        }
-
-        .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .quiz-list {
-            background: white;
+        .action-icon {
+            width: 60px;
+            height: 60px;
             border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .quiz-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
+            justify-content: center;
+            font-size: 30px;
+            margin-bottom: 15px;
         }
-
-        .quiz-item:last-child {
-            border-bottom: none;
-        }
-
-        .quiz-info h4 {
-            margin-bottom: 0.5rem;
-        }
-
-        .quiz-meta {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .btn-join {
-            background: var(--success);
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .join-quiz-form {
-            background: white;
-            padding: 2rem;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            max-width: 400px;
-            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
         }
-
-        .form-group {
-            margin-bottom: 1rem;
+        .stat-card:hover {
+            transform: scale(1.05);
         }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .results-list {
-            background: white;
+        .quiz-card {
             border-radius: 15px;
-            padding: 1.5rem;
+            overflow: hidden;
+            transition: transform 0.3s;
+            border: none;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-
-        .result-item {
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .quiz-card:hover {
+            transform: translateY(-5px);
         }
-
-        .result-item:last-child {
-            border-bottom: none;
-        }
-
-        .score {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        .percentage {
-            background: var(--primary);
+        .quiz-card .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            border: none;
         }
     </style>
 </head>
 <body>
-<div class="dashboard-container">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">QuizApp</div>
-        <ul class="nav-menu">
-            <li class="nav-item">
-                <a href="#" class="nav-link active" data-section="overview">Overview</a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" data-section="join-quiz">Join Quiz</a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" data-section="my-results">My Results</a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" data-section="leaderboard">Leaderboard</a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="logout()">Logout</a>
-            </li>
-        </ul>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/student/dashboard">
+            <i class="fas fa-graduation-cap"></i> QuizApp - Student Portal
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/student/leaderboard">
+                <i class="fas fa-trophy"></i> Leaderboard
+            </a>
+            <span class="navbar-text me-3">
+                    <i class="fas fa-user"></i> Welcome, <span th:text="${user.username}">Student</span>!
+                </span>
+            <a class="nav-link" href="/logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- Stats Section -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h3 th:text="${attemptedCount}">0</h3>
+                <p class="mb-0"><i class="fas fa-book"></i> Quizzes Taken</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <h3 th:text="${averageScore} + '%'">0%</h3>
+                <p class="mb-0"><i class="fas fa-chart-line"></i> Average Score</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <h3 th:text="${totalScore}">0</h3>
+                <p class="mb-0"><i class="fas fa-star"></i> Total Points</p>
+            </div>
+        </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Header -->
-        <div class="header">
-            <div class="welcome-message">
-                <h1>Welcome, <span id="studentName">Student</span>!</h1>
-                <p>Ready to test your knowledge?</p>
-            </div>
-            <div class="user-info">
-                <span>Student Account</span>
+    <!-- Action Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="dashboard-card action-card" onclick="window.location.href='/student/join'">
+                <div class="action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h5>Join Quiz</h5>
+                <p class="text-muted mb-0">Enter a quiz code to join</p>
             </div>
         </div>
-
-        <!-- Overview Section -->
-        <div id="overview-section" class="dashboard-section">
-            <div class="dashboard-cards">
-                <div class="card feature-card" onclick="showSection('join-quiz')">
-                    <div class="icon">🎯</div>
-                    <h3>Join Quiz</h3>
-                    <p>Enter a code to join a live quiz</p>
+        <div class="col-md-6 col-lg-3">
+            <div class="dashboard-card action-card" onclick="window.location.href='/student/quizzes'">
+                <div class="action-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <i class="fas fa-play-circle"></i>
                 </div>
-
-                <div class="card feature-card" onclick="showSection('my-results')">
-                    <div class="icon">📊</div>
-                    <h3>My Results</h3>
-                    <p>View your quiz performance</p>
-                </div>
-
-                <div class="card feature-card" onclick="showSection('leaderboard')">
-                    <div class="icon">🏆</div>
-                    <h3>Leaderboard</h3>
-                    <p>See where you rank</p>
-                </div>
-            </div>
-
-            <div class="stats-card card">
-                <h3>Your Stats</h3>
-                <div class="stats">
-                    <div class="stat-item">
-                        <div class="stat-number" id="quizzesTaken">0</div>
-                        <div class="stat-label">Quizzes Taken</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="averageScore">0%</div>
-                        <div class="stat-label">Average Score</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="bestScore">0%</div>
-                        <div class="stat-label">Best Score</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="totalPoints">0</div>
-                        <div class="stat-label">Total Points</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quiz-list">
-                <h3>Available Quizzes</h3>
-                <div id="availableQuizzes">
-                    <p>Loading available quizzes...</p>
-                </div>
+                <h5>Attempt Quiz</h5>
+                <p class="text-muted mb-0">Browse available quizzes</p>
             </div>
         </div>
-
-        <!-- Join Quiz Section -->
-        <div id="join-quiz-section" class="dashboard-section hidden">
-            <h2>Join a Quiz</h2>
-            <div class="join-quiz-form">
-                <div class="form-group">
-                    <label for="joinCode">Enter Quiz Code</label>
-                    <input type="text" id="joinCode" class="form-control" placeholder="e.g., 123456" maxlength="6">
+        <div class="col-md-6 col-lg-3">
+            <div class="dashboard-card action-card" onclick="window.location.href='/student/results'">
+                <div class="action-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <i class="fas fa-chart-bar"></i>
                 </div>
-                <button class="btn btn-primary" onclick="joinQuiz()" style="width: 100%;">Join Quiz</button>
-            </div>
-
-            <div id="joinSuccess" class="hidden" style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
-                <h4>Successfully Joined Quiz!</h4>
-                <p id="quizInfo"></p>
-                <button class="btn btn-primary" onclick="startQuiz()">Start Quiz</button>
+                <h5>My Results</h5>
+                <p class="text-muted mb-0">View your quiz history</p>
             </div>
         </div>
-
-        <!-- My Results Section -->
-        <div id="my-results-section" class="dashboard-section hidden">
-            <h2>My Results</h2>
-            <div class="results-list">
-                <div id="resultsContent">
-                    <p>Loading your results...</p>
+        <div class="col-md-6 col-lg-3">
+            <div class="dashboard-card action-card" onclick="window.location.href='/student/leaderboard'">
+                <div class="action-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                    <i class="fas fa-trophy"></i>
                 </div>
+                <h5>Leaderboard</h5>
+                <p class="text-muted mb-0">See top performers</p>
             </div>
         </div>
+    </div>
 
-        <!-- Leaderboard Section -->
-        <div id="leaderboard-section" class="dashboard-section hidden">
-            <h2>Leaderboard</h2>
-            <div class="results-list">
-                <div id="leaderboardContent">
-                    <p>Select a quiz to view leaderboard</p>
+    <!-- Available Quizzes -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="text-white mb-3"><i class="fas fa-list"></i> Available Quizzes</h3>
+        </div>
+        <div class="col-12" th:if="${quizzes.empty}">
+            <div class="dashboard-card text-center">
+                <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                <h4>No quizzes available</h4>
+                <p class="text-muted">There are no published quizzes at the moment. Please check back later.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4" th:each="quiz : ${quizzes}">
+            <div class="card quiz-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0" th:text="${quiz.title}">Quiz Title</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text" th:text="${quiz.description}">Quiz description</p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-question-circle"></i>
+                            Questions: <span th:text="${quiz.questions.size()}">0</span>
+                        </small>
+                    </div>
+                    <a th:href="@{/student/quizzes/{id}(id=${quiz.id})}" class="btn btn-primary w-100">
+                        <i class="fas fa-play-circle"></i> Start Quiz
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    // Get user data from localStorage
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || user.role !== 'STUDENT') {
-        window.location.href = 'login.html';
-    }
-
-    document.getElementById('studentName').textContent = user.username;
-
-    // Navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            // Update active link
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-
-            // Show corresponding section
-            const section = this.dataset.section;
-            showSection(section);
-        });
-    });
-
-    function showSection(section) {
-        document.querySelectorAll('.dashboard-section').forEach(s => s.classList.add('hidden'));
-        document.getElementById(`${section}-section`).classList.remove('hidden');
-
-        // Load section data
-        if (section === 'overview') loadOverview();
-        else if (section === 'my-results') loadMyResults();
-        else if (section === 'leaderboard') loadLeaderboard();
-    }
-
-    // Load overview data
-    async function loadOverview() {
-        try {
-            // Load available quizzes
-            const response = await fetch('http://localhost:8080/api/quizzes/published');
-            const quizzes = await response.json();
-
-            const quizzesHTML = quizzes.map(quiz => `
-                    <div class="quiz-item">
-                        <div class="quiz-info">
-                            <h4>${quiz.title}</h4>
-                            <p>${quiz.description}</p>
-                            <div class="quiz-meta">
-                                <span>Code: <strong>${quiz.joinCode}</strong></span>
-                                <span>Questions: ${quiz.questions ? quiz.questions.length : 0}</span>
-                                <span>Time per question: ${quiz.timePerQuestion}s</span>
-                            </div>
-                        </div>
-                        <div class="quiz-actions">
-                            <button class="btn btn-join" onclick="quickJoin('${quiz.joinCode}')">Join Now</button>
-                        </div>
-                    </div>
-                `).join('') || '<p>No available quizzes at the moment</p>';
-
-            document.getElementById('availableQuizzes').innerHTML = quizzesHTML;
-
-            // Load student stats
-            await loadStudentStats();
-
-        } catch (error) {
-            console.error('Error loading overview:', error);
-            document.getElementById('availableQuizzes').innerHTML = '<p>Error loading quizzes</p>';
-        }
-    }
-
-    // Load student stats
-    async function loadStudentStats() {
-        try {
-            const response = await fetch(`http://localhost:8080/api/participation/student/${user.id}`);
-            const results = await response.json();
-
-            document.getElementById('quizzesTaken').textContent = results.length;
-
-            if (results.length > 0) {
-                const totalScore = results.reduce((sum, result) => sum + result.score, 0);
-                const averageScore = totalScore / results.length;
-                const bestScore = Math.max(...results.map(r => r.score));
-                const totalPoints = results.reduce((sum, result) => sum + result.score, 0);
-
-                document.getElementById('averageScore').textContent = Math.round(averageScore) + '%';
-                document.getElementById('bestScore').textContent = Math.round(bestScore) + '%';
-                document.getElementById('totalPoints').textContent = totalPoints;
-            }
-
-        } catch (error) {
-            console.error('Error loading stats:', error);
-        }
-    }
-
-    // Join quiz function
-    async function joinQuiz() {
-        const joinCode = document.getElementById('joinCode').value.trim();
-
-        if (!joinCode) {
-            alert('Please enter a quiz code');
-            return;
-        }
-
-        try {
-            const response = await fetch('http://localhost:8080/api/quizzes/join', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    joinCode: joinCode,
-                    studentId: user.id
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                document.getElementById('quizInfo').textContent =
-                    `You've joined: ${data.title}`;
-                document.getElementById('joinSuccess').classList.remove('hidden');
-
-                // Store quiz info for starting
-                localStorage.setItem('currentQuiz', JSON.stringify({
-                    id: data.quizId,
-                    title: data.title,
-                    joinCode: joinCode
-                }));
-            } else {
-                alert(data.message || 'Failed to join quiz');
-            }
-        } catch (error) {
-            alert('Error joining quiz: ' + error.message);
-        }
-    }
-
-    // Quick join from overview
-    function quickJoin(joinCode) {
-        document.getElementById('joinCode').value = joinCode;
-        showSection('join-quiz');
-        joinQuiz();
-    }
-
-    // Start quiz
-    function startQuiz() {
-        const quiz = JSON.parse(localStorage.getItem('currentQuiz'));
-        if (quiz) {
-            window.location.href = `quiz-attempt.html?quizId=${quiz.id}&code=${quiz.joinCode}`;
-        }
-    }
-
-    // Load my results
-    async function loadMyResults() {
-        try {
-            const response = await fetch(`http://localhost:8080/api/participation/student/${user.id}`);
-            const results = await response.json();
-
-            if (results.length === 0) {
-                document.getElementById('resultsContent').innerHTML = '<p>No quiz results yet</p>';
-                return;
-            }
-
-            const resultsHTML = results.map(result => `
-                    <div class="result-item">
-                        <div class="result-info">
-                            <h4>${result.quiz.title}</h4>
-                            <div class="quiz-meta">
-                                <span>Date: ${new Date(result.participatedAt).toLocaleDateString()}</span>
-                                <span>Time Taken: ${result.timeTaken}s</span>
-                            </div>
-                        </div>
-                        <div class="result-score">
-                            <div class="score">${result.score} points</div>
-                            <div class="percentage">${Math.round(result.correctAnswers * 100 / result.totalQuestions)}%</div>
-                            <div style="font-size: 0.8rem; color: #666;">
-                                ${result.correctAnswers}/${result.totalQuestions} correct
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-            document.getElementById('resultsContent').innerHTML = resultsHTML;
-
-        } catch (error) {
-            console.error('Error loading results:', error);
-            document.getElementById('resultsContent').innerHTML = '<p>Error loading results</p>';
-        }
-    }
-
-    // Load leaderboard
-    async function loadLeaderboard() {
-        // For now, show a message - you can implement specific quiz leaderboards
-        document.getElementById('leaderboardContent').innerHTML = `
-                <div class="result-item" style="background: #f8f9fa; border-radius: 10px;">
-                    <div class="result-info">
-                        <h4>Global Ranking</h4>
-                        <p>Your overall performance across all quizzes</p>
-                    </div>
-                    <div class="result-score">
-                        <div class="score">Coming Soon</div>
-                    </div>
-                </div>
-                <p style="text-align: center; margin-top: 2rem; color: #666;">
-                    Select a specific quiz to view detailed leaderboard
-                </p>
-            `;
-    }
-
-    // Logout
-    function logout() {
-        localStorage.removeItem('user');
-        localStorage.removeItem('currentQuiz');
-        window.location.href = 'login.html';
-    }
-
-    // Initialize dashboard
-    loadOverview();
-</script>
 </body>
 </html>
