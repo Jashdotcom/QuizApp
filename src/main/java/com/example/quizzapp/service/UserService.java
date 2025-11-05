@@ -34,6 +34,7 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
+        user.setCurrentQuizCode(null); // Initialize as null
 
         return userRepository.save(user);
     }
@@ -46,12 +47,18 @@ public class UserService {
     // ✅ Find user by username (throws error if not found)
     public User findByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
     }
 
     // ✅ Find user by ID
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
+    }
+
+    // ✅ Find user by ID (throws error if not found)
+    public User findByIdOrThrow(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
     // ✅ Get all students by quiz code
@@ -71,9 +78,18 @@ public class UserService {
 
     // ✅ Update student's current quiz code
     public User updateUserCurrentQuiz(Long studentId, String quizCode) {
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        User student = findByIdOrThrow(studentId);
+        if (student.getRole() != UserRole.STUDENT) {
+            throw new RuntimeException("User is not a student");
+        }
         student.setCurrentQuizCode(quizCode);
+        return userRepository.save(student);
+    }
+
+    // ✅ Clear student's current quiz code
+    public User clearUserCurrentQuiz(Long studentId) {
+        User student = findByIdOrThrow(studentId);
+        student.setCurrentQuizCode(null);
         return userRepository.save(student);
     }
 
@@ -81,6 +97,13 @@ public class UserService {
     public boolean isTeacher(Long userId) {
         return userRepository.findById(userId)
                 .map(user -> user.getRole() == UserRole.TEACHER)
+                .orElse(false);
+    }
+
+    // ✅ Check if user is a student
+    public boolean isStudent(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> user.getRole() == UserRole.STUDENT)
                 .orElse(false);
     }
 
@@ -98,8 +121,21 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // ✅ (Probably unused, but kept for completeness)
-    public Optional<User> findByUsernameById(Long userId) {
-        return userRepository.findById(userId);
+    // ✅ Delete user by ID
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found with id: " + id);
+        }
+        userRepository.deleteById(id);
+    }
+
+    // ✅ Get all users
+    public List<User> findAll() {
+        return userRepository.findAll();
+    }
+
+    // ✅ Find by email
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 }

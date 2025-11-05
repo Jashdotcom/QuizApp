@@ -1,9 +1,10 @@
 package com.example.quizzapp.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "quizzes")
@@ -12,31 +13,29 @@ public class Quiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @NotBlank
+    @Size(max = 100)
     private String title;
 
+    @Size(max = 500)
     private String description;
+
+    @Column(name = "join_code", unique = true)
+    private String joinCode;
+
+    @Column(name = "time_per_question")
+    private Integer timePerQuestion = 30; // default 30 seconds
+
+    @Column(name = "published")
+    private Boolean published = false;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;
-
-    @Column(unique = true)
-    private String joinCode; // 6-digit code for students to join
-
-    private boolean published = false;
-
-    private LocalDateTime createdAt;
-
-    private Integer timePerQuestion = 30; // Default 30 seconds per question
-
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Question> questions = new ArrayList<>();
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
 
     // Constructors
     public Quiz() {}
@@ -57,31 +56,18 @@ public class Quiz {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public User getCreatedBy() { return createdBy; }
-    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
-
     public String getJoinCode() { return joinCode; }
     public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
-
-    public boolean isPublished() { return published; }
-    public void setPublished(boolean published) { this.published = published; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public Integer getTimePerQuestion() { return timePerQuestion; }
     public void setTimePerQuestion(Integer timePerQuestion) { this.timePerQuestion = timePerQuestion; }
 
-    public List<Question> getQuestions() { return questions; }
-    public void setQuestions(List<Question> questions) { this.questions = questions; }
+    public Boolean getPublished() { return published; }
+    public void setPublished(Boolean published) { this.published = published; }
 
-    public void addQuestion(Question question) {
-        questions.add(question);
-        question.setQuiz(this);
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public void removeQuestion(Question question) {
-        questions.remove(question);
-        question.setQuiz(null);
-    }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
 }
