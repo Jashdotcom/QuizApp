@@ -1,5 +1,6 @@
 package com.example.quizzapp.controller;
 
+
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
