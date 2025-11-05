@@ -1,24 +1,31 @@
 package com.example.quizzapp.controller;
 
-
+import com.example.quizzapp.dto.LoginRequest;
 import com.example.quizzapp.model.User;
+import com.example.quizzapp.model.UserRole;
 import com.example.quizzapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.example.quizzapp.model.UserRole;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*") // allow requests from your frontend (HTML/JS)
 public class AuthController {
 
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    // ✅ REGISTER ENDPOINT
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest request) {
         try {
@@ -46,7 +53,34 @@ public class AuthController {
         }
     }
 
-    // Inner class for registration request
+    // ✅ LOGIN ENDPOINT
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            // Authenticate the user using Spring Security
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
+
+            // Fetch user details from the database
+            User user = userService.findByUsernameOrThrow(request.getUsername());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Login successful");
+            response.put("userId", user.getId());
+            response.put("username", user.getUsername());
+            response.put("role", user.getRole().toString());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Invalid username or password");
+            return ResponseEntity.status(401).body(error);
+        }
+    }
+
+    // ✅ INNER CLASS FOR REGISTRATION
     public static class RegistrationRequest {
         private String username;
         private String email;

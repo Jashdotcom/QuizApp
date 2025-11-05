@@ -34,36 +34,18 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .authorizeHttpRequests(authz -> authz
-                        // Allow public access to login/register and static
-                        .requestMatchers("/", "/home", "/register", "/auth/login", "/auth/register",
-                                "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        // Allow public access to quiz code join endpoint if needed
-                        .requestMatchers("/quizzes/**", "/quiz/join").permitAll()
-                        // Teacher/Student endpoints require roles
-                        .requestMatchers("/teacher/**").hasRole("TEACHER")
-                        .requestMatchers("/student/**").hasRole("STUDENT")
-                        // Everything else requires authentication
+                .csrf(csrf -> csrf.disable()) // disable CSRF for APIs
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // use JWT if needed
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**", "/auth/**", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form
-                        .loginPage("/auth/login")
-                        .loginProcessingUrl("/auth/login") // this matches form 'action'
-                        .defaultSuccessUrl("/dashboard", true)
-                        .failureUrl("/auth/login?error=true")
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/auth/login?logout=true")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
-                        .permitAll()
-                );
+                .formLogin(form -> form.disable()) // ❌ disable Spring's default login
+                .logout(logout -> logout.disable()); // optional
+
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -76,4 +58,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 }
