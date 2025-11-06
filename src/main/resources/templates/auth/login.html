@@ -195,23 +195,26 @@
     <div class="login-right">
         <h2 class="mb-4" style="color: #333;">Login</h2>
 
+        <!-- Error Messages -->
         <div th:if="${param.error}" class="alert alert-danger">
             <i class="fas fa-exclamation-circle"></i> Invalid username or password. Please try again.
         </div>
         <div th:if="${param.logout}" class="alert alert-success">
             <i class="fas fa-check-circle"></i> You have been logged out successfully.
         </div>
-        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
-        <form th:action="@{/templates/dup/templates/templates/login}" method="post">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <!-- FIXED: Use the correct login processing URL -->
+        <!-- In your login.html -->
+        <form th:action="@{/login}" method="post">
+
+            <!-- CSRF token is automatically handled by Spring Security in newer versions -->
+
             <div class="mb-3">
                 <label for="username" class="form-label">
                     <i class="fas fa-user"></i> Username
                 </label>
                 <input type="text" class="form-control" id="username" name="username"
-                       placeholder="Enter your username" required>
+                       placeholder="Enter your username" required autofocus>
             </div>
 
             <div class="mb-3">
@@ -237,7 +240,7 @@
         </div>
 
         <div class="text-center">
-            <a th:href="@{/templates/dup/templates/templates/register}" class="register-link">
+            <a th:href="@{/auth/register}" class="register-link">
                 <i class="fas fa-user-plus"></i> Create New Account
             </a>
         </div>
@@ -245,11 +248,14 @@
         <div class="quick-login">
             <h6><i class="fas fa-info-circle"></i> Quick Test Accounts:</h6>
             <div class="d-flex flex-wrap justify-content-center">
-                <button class="quick-btn" onclick="fillLogin('teacher', 'password')">
+                <button type="button" class="quick-btn" onclick="fillLogin('teacher', 'teacher123')">
                     👨‍🏫 Teacher
                 </button>
-                <button class="quick-btn" onclick="fillLogin('student', 'password')">
+                <button type="button" class="quick-btn" onclick="fillLogin('student', 'student123')">
                     👨‍🎓 Student
+                </button>
+                <button type="button" class="quick-btn" onclick="fillLogin('admin', 'admin123')">
+                    👨‍💼 Admin
                 </button>
             </div>
         </div>
@@ -260,6 +266,8 @@
     function fillLogin(username, password) {
         document.getElementById('username').value = username;
         document.getElementById('password').value = password;
+        // Optional: Auto-submit the form
+        // document.querySelector('form').submit();
     }
 </script>
 </body>
