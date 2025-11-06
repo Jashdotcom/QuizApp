@@ -1,37 +1,115 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Attempt Quiz</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Quizzes - QuizApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial; text-align: center; margin: 40px; }
-        .question { margin: 20px; }
-        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
-    </style>
-    <script>
-        let timer = 60; // 60 seconds
-        function countdown() {
-            if (timer <= 0) {
-                document.getElementById('quizForm').submit();
-                return;
-            }
-            document.getElementById('timer').innerText = timer;
-            timer--;
-            setTimeout(countdown, 1000);
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
         }
-        window.onload = countdown;
-    </script>
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .quiz-card {
+            border-radius: 15px;
+            overflow: hidden;
+            transition: transform 0.3s;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .quiz-card:hover {
+            transform: translateY(-5px);
+        }
+        .quiz-card .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .empty-state i {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-<h1 th:text="${quiz.title}"></h1>
-<p>Time remaining: <span id="timer"></span> seconds</p>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/student/dashboard}">
+            <i class="fas fa-graduation-cap"></i> QuizApp - Student Portal
+        </a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3">
+                <i class="fas fa-user"></i> Welcome, <span th:text="${username}">Username</span>
+            </span>
+            <a class="nav-link" href="/logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</nav>
 
-<form id="quizForm" method="post" action="/student/submitQuiz">
-    <input type="hidden" name="quizId" th:value="${quiz.id}" />
-    <input type="hidden" name="score" value="80" /> <!-- Dummy for now -->
-    <input type="hidden" name="correctAnswers" value="4" />
-    <input type="hidden" name="totalQuestions" value="5" />
-    <input type="hidden" name="timeTaken" value="60" />
-    <button type="submit">Submit Quiz</button>
-</form>
+<div class="container">
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-play-circle"></i> Available Quizzes</h2>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div th:if="${quizzes.empty}" class="empty-state">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>No Quizzes Available</h3>
+            <p class="text-muted">There are no published quizzes at the moment. Please check back later or ask your teacher for a quiz code.</p>
+            <a th:href="@{/student/join}" class="btn btn-primary mt-3">
+                <i class="fas fa-key"></i> Join Quiz with Code
+            </a>
+        </div>
+
+        <div class="row" th:if="${!quizzes.empty}">
+            <div class="col-md-6 col-lg-4" th:each="quiz : ${quizzes}">
+                <div class="card quiz-card">
+                    <div class="card-header">
+                        <h5 class="mb-0" th:text="${quiz.title}">Quiz Title</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text" th:text="${quiz.description}">Quiz description</p>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-question-circle"></i>
+                                Questions: <span th:text="${quiz.questions != null ? quiz.questions.size() : 0}">0</span>
+                            </small>
+                            <br>
+                            <small class="text-muted" th:if="${quiz.timePerQuestion != null}">
+                                <i class="fas fa-clock"></i>
+                                Time per question: <span th:text="${quiz.timePerQuestion}">0</span> seconds
+                            </small>
+                        </div>
+                        <a th:href="@{/student/quizzes/{id}(id=${quiz.id})}" class="btn btn-primary w-100">
+                            <i class="fas fa-play-circle"></i> Start Quiz
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

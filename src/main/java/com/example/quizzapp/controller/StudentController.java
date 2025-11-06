@@ -1,8 +1,10 @@
 package com.example.quizzapp.controller;
 
 import com.example.quizzapp.model.Quiz;
+import com.example.quizzapp.model.QuizResult;
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.repository.QuizRepository;
+import com.example.quizzapp.repository.ResultRepository;
 import com.example.quizzapp.repository.UserRepository;
 import com.example.quizzapp.security.UserPrincipal;
 import com.example.quizzapp.service.QuizResultService;
@@ -28,6 +30,9 @@ public class StudentController {
     @Autowired
     private QuizResultService quizResultService;
 
+    @Autowired
+    private ResultRepository resultRepository;
+
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication, Model model) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -35,24 +40,52 @@ public class StudentController {
         }
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        User student = userRepository.findById(userPrincipal.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Get available published quizzes
+        List<Quiz> publishedQuizzes = quizRepository.findByPublishedTrue();
+        
+        // Get student's stats
+        List<QuizResult> results = quizResultService.getResultsByStudent(student);
+        int attemptedCount = results.size();
+        int totalScore = results.stream().mapToInt(QuizResult::getScore).sum();
+        int averageScore = attemptedCount > 0 ? totalScore / attemptedCount : 0;
+
         model.addAttribute("username", userPrincipal.getUsername());
-        model.addAttribute("quizzes", List.of()); // Empty list
+        model.addAttribute("quizzes", publishedQuizzes);
+        model.addAttribute("attemptedCount", attemptedCount);
+        model.addAttribute("totalScore", totalScore);
+        model.addAttribute("averageScore", averageScore);
         return "student-dashboard";
     }
 
-    @PostMapping("/join")
-    public String joinQuiz(@RequestParam String code, Authentication authentication, Model model) {
+    @GetMapping("/join")
+    public String showJoinQuizPage(Authentication authentication, Model model) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return "redirect:/auth/login";
         }
 
-        Optional<Quiz> quizOpt = quizRepository.findByJoinCode(code);
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        model.addAttribute("username", userPrincipal.getUsername());
+        return "student-join-quiz";
+    }
+
+    @PostMapping("/join")
+    public String joinQuiz(@RequestParam String quizCode, Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Optional<Quiz> quizOpt = quizRepository.findByJoinCodeAndPublishedTrue(quizCode);
         if (quizOpt.isPresent()) {
             model.addAttribute("quiz", quizOpt.get());
             return "quiz-attempt";
         }
-        model.addAttribute("error", "Invalid quiz code");
-        return "student-dashboard";
+        model.addAttribute("error", "Invalid quiz code or quiz not published");
+        model.addAttribute("username", userPrincipal.getUsername());
+        return "student-join-quiz";
     }
 
     @PostMapping("/submitQuiz")
@@ -84,7 +117,35 @@ public class StudentController {
         return "redirect:/student/dashboard";
     }
 
-    @GetMapping("/myResults")
+    @GetMapping("/quizzes")
+    public String showAvailableQuizzes(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        List<Quiz> publishedQuizzes = quizRepository.findByPublishedTrue();
+
+        model.addAttribute("username", userPrincipal.getUsername());
+        model.addAttribute("quizzes", publishedQuizzes);
+        return "student/quiz-attempt";
+    }
+
+    @GetMapping("/quizzes/{id}")
+    public String attemptQuiz(@PathVariable Long id, Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        Optional<Quiz> quizOpt = quizRepository.findByIdAndPublishedTrue(id);
+        if (quizOpt.isPresent()) {
+            model.addAttribute("quiz", quizOpt.get());
+            return "quiz-attempt";
+        }
+        return "redirect:/student/quizzes";
+    }
+
+    @GetMapping("/results")
     public String viewResults(Authentication authentication, Model model) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return "redirect:/auth/login";
@@ -94,7 +155,31 @@ public class StudentController {
         User student = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        model.addAttribute("username", userPrincipal.getUsername());
         model.addAttribute("results", quizResultService.getResultsByStudent(student));
+        return "student-results";
+    }
+
+    @GetMapping("/myResults")
+    public String viewResultsLegacy(Authentication authentication, Model model) {
+        // Redirect to the new /results endpoint for backward compatibility
+        return "redirect:/student/results";
+    }
+
+    @GetMapping("/leaderboard")
+    public String showLeaderboard(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        
+        // Get all quiz results ordered by score
+        List<QuizResult> allResults = resultRepository.findAll();
+        allResults.sort((r1, r2) -> Integer.compare(r2.getScore(), r1.getScore()));
+
+        model.addAttribute("username", userPrincipal.getUsername());
+        model.addAttribute("leaderboard", allResults);
         return "student-results";
     }
 

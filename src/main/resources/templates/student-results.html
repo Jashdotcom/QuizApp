@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaderboard - QuizApp</title>
+    <title th:text="${leaderboard != null ? 'Leaderboard' : 'My Results'} + ' - QuizApp'">Results - QuizApp</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -20,6 +20,17 @@
             padding: 30px;
             margin-top: 20px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .result-item {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .result-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
         }
         .leaderboard-item {
             border: 2px solid #e9ecef;
@@ -48,6 +59,138 @@
         .rank-other { background: #e9ecef; color: #333; }
         .current-user {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: #667eea !important;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .empty-state i {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/student/dashboard}">
+            <i class="fas fa-graduation-cap"></i> QuizApp - Student Portal
+        </a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3">
+                <i class="fas fa-user"></i> Welcome, <span th:text="${username}">Student</span>!
+            </span>
+            <a class="nav-link" href="/logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 th:if="${leaderboard != null}">
+                <i class="fas fa-trophy"></i> Global Leaderboard
+            </h2>
+            <h2 th:if="${results != null}">
+                <i class="fas fa-chart-bar"></i> My Quiz Results
+            </h2>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Results View -->
+        <div th:if="${results != null}">
+            <div th:if="${results.empty}" class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No Results Yet</h3>
+                <p class="text-muted">You haven't completed any quizzes yet. Start attempting quizzes to see your results!</p>
+                <a th:href="@{/student/quizzes}" class="btn btn-primary mt-3">
+                    <i class="fas fa-play-circle"></i> Browse Quizzes
+                </a>
+            </div>
+
+            <div th:if="${!results.empty}">
+                <div class="result-item" th:each="result : ${results}">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <h5 class="mb-0" th:text="${result.quiz.title}">Quiz Title</h5>
+                            <small class="text-muted" th:text="${#temporals.format(result.completedAt, 'MMM dd, yyyy HH:mm')}">Date</small>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Score:</strong>
+                            <span class="badge"
+                                  th:classappend="${result.score >= 80} ? 'bg-success' : (${result.score >= 60} ? 'bg-warning' : 'bg-danger')"
+                                  style="font-size: 18px; padding: 8px 15px;"
+                                  th:text="${result.score} + '%'">0%</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Correct:</strong>
+                            <span th:text="${result.correctAnswers} + '/' + ${result.totalQuestions}">0/0</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Time:</strong>
+                            <span th:text="${result.timeTaken} + 's'">0s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard View -->
+        <div th:if="${leaderboard != null}">
+            <div th:if="${leaderboard.empty}" class="empty-state">
+                <i class="fas fa-trophy"></i>
+                <h3>No Results Yet</h3>
+                <p class="text-muted">Start taking quizzes to see the leaderboard!</p>
+                <a th:href="@{/student/quizzes}" class="btn btn-primary mt-3">
+                    <i class="fas fa-play-circle"></i> Browse Quizzes
+                </a>
+            </div>
+
+            <div th:if="${!leaderboard.empty}">
+                <div th:each="result, iterStat : ${leaderboard}" class="leaderboard-item" 
+                     th:classappend="${result.student != null && result.student.username == username} ? 'current-user' : ''">
+                    <div class="row align-items-center">
+                        <div class="col-md-1">
+                            <div class="rank-badge"
+                                 th:classappend="${iterStat.count == 1} ? 'rank-1' : (${iterStat.count == 2} ? 'rank-2' : (${iterStat.count == 3} ? 'rank-3' : 'rank-other'))">
+                                <span th:text="${iterStat.count}">1</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="mb-0">
+                                <span th:text="${result.student != null ? result.student.username : 'Unknown'}">Student Name</span>
+                                <span th:if="${result.student != null && result.student.username == username}" class="badge bg-primary">You</span>
+                            </h5>
+                            <small class="text-muted" th:text="${result.quiz != null ? result.quiz.title : 'Unknown Quiz'}">Quiz Title</small>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Score:</strong>
+                            <span class="badge"
+                                  th:classappend="${result.score >= 80} ? 'bg-success' : (${result.score >= 60} ? 'bg-warning' : 'bg-danger')"
+                                  style="font-size: 18px; padding: 8px 15px;"
+                                  th:text="${result.score} + '%'">0%</span>
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Correct:</strong>
+                            <span th:text="${result.correctAnswers} + '/' + ${result.totalQuestions}">0/0</span>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="text-muted" th:text="${result.completedAt != null ? #temporals.format(result.completedAt, 'MMM dd') : 'N/A'}">Date</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
             border-color: #667eea !important;
         }
     </style>
