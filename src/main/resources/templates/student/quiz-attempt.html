@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Attempt Quiz</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin: 40px; }
+        .question { margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    </style>
+    <script>
+        let timer = 60; // 60 seconds
+        function countdown() {
+            if (timer <= 0) {
+                document.getElementById('quizForm').submit();
+                return;
+            }
+            document.getElementById('timer').innerText = timer;
+            timer--;
+            setTimeout(countdown, 1000);
+        }
+        window.onload = countdown;
+    </script>
+</head>
+<body>
+<h1 th:text="${quiz.title}"></h1>
+<p>Time remaining: <span id="timer"></span> seconds</p>
+
+<form id="quizForm" method="post" action="/student/submitQuiz">
+    <input type="hidden" name="quizId" th:value="${quiz.id}" />
+    <input type="hidden" name="score" value="80" /> <!-- Dummy for now -->
+    <input type="hidden" name="correctAnswers" value="4" />
+    <input type="hidden" name="totalQuestions" value="5" />
+    <input type="hidden" name="timeTaken" value="60" />
+    <button type="submit">Submit Quiz</button>
+</form>
+</body>
+</html>

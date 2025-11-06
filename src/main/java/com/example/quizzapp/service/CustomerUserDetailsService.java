@@ -1,7 +1,8 @@
-package com.example.quizzapp.security;
+package com.example.quizzapp.service;
 
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.repository.UserRepository;
+import com.example.quizzapp.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,7 +25,8 @@ public class CustomerUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         // UserRole stored as enum in user entity
-        UserRole userRole = user.getRole();
+        UserRole userRole = UserRole.valueOf(user.getRole().toString());
+
 
         Collection<GrantedAuthority> authorities = Collections.singletonList(
                 new SimpleGrantedAuthority("ROLE_" + userRole.name())

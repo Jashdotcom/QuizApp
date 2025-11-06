@@ -1,5 +1,7 @@
 package com.example.quizzapp.model;
 
 public enum QuizStatus {
-    DRAFT, PUBLISHED
+    DRAFT,
+    ACTIVE,
+    COMPLETED
 }

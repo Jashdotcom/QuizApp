@@ -204,7 +204,7 @@
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
         <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
-        <form th:action="@{/auth/login}" method="post">
+        <form th:action="@{/templates/dup/templates/templates/login}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
             <div class="mb-3">
                 <label for="username" class="form-label">
@@ -237,7 +237,7 @@
         </div>
 
         <div class="text-center">
-            <a th:href="@{/auth/register}" class="register-link">
+            <a th:href="@{/templates/dup/templates/templates/register}" class="register-link">
                 <i class="fas fa-user-plus"></i> Create New Account
             </a>
         </div>

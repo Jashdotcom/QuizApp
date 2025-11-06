@@ -1,104 +1,77 @@
 package com.example.quizzapp.config;
 
+import com.example.quizzapp.service.CustomerUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+    @Autowired
+    private CustomerUserDetailsService customerUserDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * ✅ Define the AuthenticationManager explicitly using AuthenticationManagerBuilder
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        authBuilder.userDetailsService(customerUserDetailsService).passwordEncoder(passwordEncoder());
+        return authBuilder.build();
+    }
+
+    /**
+     * ✅ Configure your security filter chain
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Enable CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Enable CSRF for form submissions (default is enabled)
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
-
-                // Set session management to stateful (required for form login)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-
-                // Set permissions on endpoints
-                .authorizeHttpRequests(authz -> authz
-                        // Public endpoints - no authentication required
-                        .requestMatchers(
-                                "/", "/home", "/register", "/auth/**",
-                                "/css/**", "/js/**", "/images/**", "/webjars/**"
-                        ).permitAll()
-
-                        // Dashboard endpoints - require authentication
-                        .requestMatchers("/dashboard/**").authenticated()
-
-                        // Teacher specific endpoints
-                        .requestMatchers("/teacher/**").hasRole("TEACHER")
-
-                        // Student specific endpoints
-                        .requestMatchers("/student/**").hasRole("STUDENT")
-
-                        // Quiz endpoints
-                        .requestMatchers("/quizzes/**").permitAll() // Allow quiz access
-                        .requestMatchers("/quiz/create", "/quiz/edit/**", "/quiz/delete/**").hasRole("TEACHER")
-                        .requestMatchers("/quiz/attempt/**", "/quiz/join").hasRole("STUDENT")
-
-                        // Private endpoints - require authentication
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/teacher/**").hasAuthority("TEACHER")
+                        .requestMatchers("/student/**").hasAuthority("STUDENT")
                         .anyRequest().authenticated()
                 )
-
-                // Configure form login
                 .formLogin(form -> form
                         .loginPage("/auth/login")
-                        .loginProcessingUrl("/auth/login")
-                        .defaultSuccessUrl("/dashboard", true)
+                        .loginProcessingUrl("/perform_login")
+                        .defaultSuccessUrl("/postLogin", true)
                         .failureUrl("/auth/login?error=true")
                         .permitAll()
                 )
-
-                // Configure logout
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/auth/login?logout=true")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
                         .permitAll()
-                );
+                )
+                .csrf(csrf -> csrf.disable());
 
         return http.build();
     }
 
-    // CORS configuration to allow requests from browser
+    /**
+     * ✅ DaoAuthenticationProvider if you use it somewhere
+     */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Allow all origins in development
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(customerUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 }

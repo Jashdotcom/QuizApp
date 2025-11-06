@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quiz Leaderboard</title>
+    <style>
+        table { border-collapse: collapse; width: 70%; margin: 30px auto; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        th { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+<h2 style="text-align:center;">Leaderboard</h2>
+<table>
+    <tr>
+        <th>Rank</th>
+        <th>Student</th>
+        <th>Score</th>
+        <th>Correct Answers</th>
+        <th>Time Taken (s)</th>
+    </tr>
+    <tr th:each="result, iterStat : ${leaderboard}">
+        <td th:text="${iterStat.index + 1}"></td>
+        <td th:text="${result.student.username}"></td>
+        <td th:text="${result.score}"></td>
+        <td th:text="${result.correctAnswers}"></td>
+        <td th:text="${result.timeTaken}"></td>
+    </tr>
+</table>
+</body>
+</html>

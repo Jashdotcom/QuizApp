@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>My Quiz Results</title>
+    <style>
+        table { border-collapse: collapse; width: 80%; margin: 30px auto; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+<h2 style="text-align:center;">My Quiz Results</h2>
+<table>
+    <tr>
+        <th>Quiz Title</th>
+        <th>Score</th>
+        <th>Correct Answers</th>
+        <th>Total</th>
+        <th>Time Taken (s)</th>
+        <th>Date</th>
+    </tr>
+    <tr th:each="result : ${results}">
+        <td th:text="${result.quiz.title}"></td>
+        <td th:text="${result.score}"></td>
+        <td th:text="${result.correctAnswers}"></td>
+        <td th:text="${result.totalQuestions}"></td>
+        <td th:text="${result.timeTaken}"></td>
+        <td th:text="${#temporals.format(result.completedAt, 'dd-MM-yyyy HH:mm')}"></td>
+    </tr>
+</table>
+</body>
+</html>
