@@ -174,9 +174,8 @@ public class StudentController {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         
-        // Get all quiz results ordered by score
-        List<QuizResult> allResults = resultRepository.findAll();
-        allResults.sort((r1, r2) -> Integer.compare(r2.getScore(), r1.getScore()));
+        // Get all quiz results ordered by score (descending) using database query
+        List<QuizResult> allResults = resultRepository.findAllByOrderByScoreDesc();
 
         model.addAttribute("username", userPrincipal.getUsername());
         model.addAttribute("leaderboard", allResults);
