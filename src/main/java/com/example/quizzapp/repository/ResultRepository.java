@@ -9,4 +9,5 @@ import java.util.List;
 public interface ResultRepository extends JpaRepository<QuizResult, Long> {
     List<QuizResult> findByStudent(User student);
     List<QuizResult> findByQuizOrderByScoreDesc(Quiz quiz);
+    List<QuizResult> findAllByOrderByScoreDesc();
 }
