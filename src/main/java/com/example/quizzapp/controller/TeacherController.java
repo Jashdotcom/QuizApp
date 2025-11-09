@@ -150,4 +150,30 @@ public class TeacherController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    @PostMapping("/quizzes/{quizId}/duplicate")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> duplicateQuizApi(@PathVariable Long quizId, Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                response.put("success", false);
+                response.put("message", "Not authenticated");
+                return ResponseEntity.status(401).body(response);
+            }
+
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            Quiz duplicatedQuiz = quizService.duplicateQuiz(quizId, userPrincipal.getId());
+            
+            response.put("success", true);
+            response.put("message", "Quiz duplicated successfully!");
+            response.put("quizId", duplicatedQuiz.getId());
+            response.put("title", duplicatedQuiz.getTitle());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Failed to duplicate quiz: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }
