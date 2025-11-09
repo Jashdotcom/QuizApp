@@ -48,9 +48,19 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@ModelAttribute User user, Model model) {
-        userService.registerUser(user);
-        model.addAttribute("success", "Account created! Please log in.");
-        return "auth/login";
+        try {
+            userService.registerUser(user);
+            model.addAttribute("success", "Account created! Please log in.");
+            return "auth/login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("user", user);
+            return "auth/register";
+        } catch (Exception e) {
+            model.addAttribute("error", "Registration failed: " + e.getMessage());
+            model.addAttribute("user", user);
+            return "auth/register";
+        }
     }
 
     @GetMapping("/logout")
