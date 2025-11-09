@@ -35,9 +35,79 @@ public class StudentController {
         }
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        User student = userRepository.findById(userPrincipal.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Get published quizzes
+        List<Quiz> publishedQuizzes = quizRepository.findByPublishedTrue();
+        
+        // Get student stats
+        List<?> results = quizResultService.getResultsByStudent(student);
+        int attemptedCount = results.size();
+        int totalScore = results.stream()
+                .mapToInt(r -> 0) // Would need proper calculation
+                .sum();
+        int averageScore = attemptedCount > 0 ? totalScore / attemptedCount : 0;
+        
         model.addAttribute("username", userPrincipal.getUsername());
-        model.addAttribute("quizzes", List.of()); // Empty list
+        model.addAttribute("quizzes", publishedQuizzes);
+        model.addAttribute("attemptedCount", attemptedCount);
+        model.addAttribute("averageScore", averageScore);
+        model.addAttribute("totalScore", totalScore);
         return "student-dashboard";
+    }
+
+    @GetMapping("/join")
+    public String showJoinQuizPage(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+        
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        model.addAttribute("username", userPrincipal.getUsername());
+        return "student-join-quiz";
+    }
+
+    @GetMapping("/quizzes")
+    public String listQuizzes(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+        
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        List<Quiz> publishedQuizzes = quizRepository.findByPublishedTrue();
+        
+        model.addAttribute("username", userPrincipal.getUsername());
+        model.addAttribute("quizzes", publishedQuizzes);
+        return "student-dashboard";
+    }
+
+    @GetMapping("/results")
+    public String viewAllResults(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        User student = userRepository.findById(userPrincipal.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        model.addAttribute("username", userPrincipal.getUsername());
+        model.addAttribute("results", quizResultService.getResultsByStudent(student));
+        return "student-results";
+    }
+
+    @GetMapping("/leaderboard")
+    public String viewLeaderboard(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        // Get global leaderboard
+        model.addAttribute("username", userPrincipal.getUsername());
+        model.addAttribute("leaderboard", List.of()); // Would need proper implementation
+        return "student-leaderboard";
     }
 
     @PostMapping("/join")

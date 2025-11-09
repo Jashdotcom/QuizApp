@@ -53,6 +53,17 @@ public class QuizController {
         quizService.deleteQuiz(quizId);
         return "redirect:/teacher/dashboard";
     }
+
+    @GetMapping("/{quizId}/edit")
+    public String editQuiz(@PathVariable Long quizId, Model model) {
+        Optional<Quiz> quizOpt = quizService.getQuizById(quizId);
+        if (quizOpt.isPresent()) {
+            model.addAttribute("quiz", quizOpt.get());
+            return "quiz-edit";
+        }
+        return "redirect:/teacher/dashboard";
+    }
+
     // GET method for showing the join quiz form
     @GetMapping("/join-quiz")
     public String showJoinQuizForm(Model model) {

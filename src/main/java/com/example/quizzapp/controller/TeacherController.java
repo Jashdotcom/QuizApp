@@ -70,6 +70,54 @@ public class TeacherController {
         return "create-quiz";
     }
 
+    @GetMapping("/quizzes/create")
+    public String createQuizPageAlias(Authentication authentication, Model model) {
+        return createQuizPage(authentication, model);
+    }
+
+    @GetMapping("/leaderboard")
+    public String viewGlobalLeaderboard(Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+        
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        User teacher = userRepository.findById(userPrincipal.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        model.addAttribute("teacherName", teacher.getUsername());
+        model.addAttribute("leaderboard", List.of()); // Would need proper implementation
+        return "teacher-leaderboard";
+    }
+
+    @GetMapping("/quizzes/{quizId}/students")
+    public String viewQuizStudents(@PathVariable Long quizId, Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+        
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+        
+        model.addAttribute("quiz", quiz);
+        model.addAttribute("results", quizResultService.getLeaderboard(quizId));
+        return "teacher-quiz-students";
+    }
+
+    @GetMapping("/quizzes/{quizId}/leaderboard")
+    public String viewQuizLeaderboard(@PathVariable Long quizId, Authentication authentication, Model model) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/auth/login";
+        }
+        
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+        
+        model.addAttribute("quiz", quiz);
+        model.addAttribute("leaderboard", quizResultService.getLeaderboard(quizId));
+        return "teacher-quiz-leaderboard";
+    }
+
     @PostMapping("/create")
     public String createQuiz(@RequestParam String title,
                              @RequestParam String description,

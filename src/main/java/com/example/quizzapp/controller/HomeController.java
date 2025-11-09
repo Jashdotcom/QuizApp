@@ -10,4 +10,9 @@ public class HomeController {
     public String home() {
         return "redirect:/auth/login";
     }
+
+    @GetMapping("/logout")
+    public String logout() {
+        return "redirect:/auth/login?logout";
+    }
 }
