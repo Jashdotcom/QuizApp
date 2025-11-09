@@ -42,6 +42,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/teacher/quizzes/*/publish", "/teacher/quizzes/*/unpublish")
+                )
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/", "/auth/**", "/register", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/dashboard").authenticated()

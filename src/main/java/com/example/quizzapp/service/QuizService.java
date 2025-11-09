@@ -2,6 +2,7 @@ package com.example.quizzapp.service;
 
 import com.example.quizzapp.model.Question;
 import com.example.quizzapp.model.Quiz;
+import com.example.quizzapp.model.QuizStatus;
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.repository.QuestionRepository;
 import com.example.quizzapp.repository.QuizRepository;
@@ -41,7 +42,10 @@ public class QuizService {
         quiz.setCreatedBy(teacher);
         quiz.setTimePerQuestion(timePerQuestion);
         quiz.setPublished(false);
-        quiz.setJoinCode(generateJoinCode(6));
+        quiz.setStatus(QuizStatus.DRAFT);
+        String code = generateJoinCode(6);
+        quiz.setJoinCode(code);
+        quiz.setUniqueCode(code);
 
         return quizRepository.save(quiz);
     }
@@ -84,6 +88,8 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
         quiz.setPublished(true);
+        quiz.setStatus(QuizStatus.PUBLISHED);
+        quiz.setPublishedAt(java.time.ZonedDateTime.now());
         return quizRepository.save(quiz);
     }
 
@@ -91,6 +97,7 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
         quiz.setPublished(false);
+        quiz.setStatus(QuizStatus.DRAFT);
         return quizRepository.save(quiz);
     }
 
