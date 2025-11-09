@@ -26,20 +26,6 @@ public class AuthController {
         return "auth/login";
     }
 
-    @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password, HttpSession session, Model model) {
-        Optional<User> userOpt = userService.authenticate(username, password);
-        if (userOpt.isPresent()) {
-            session.setAttribute("loggedInUser", userOpt.get());
-            if (userOpt.get().getRole() == UserRole.TEACHER)
-                return "redirect:/teacher/dashboard";
-            else
-                return "redirect:/student/dashboard";
-        }
-        model.addAttribute("error", "Invalid credentials");
-        return "auth/login";
-    }
-
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
         model.addAttribute("user", new User());
@@ -48,24 +34,18 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@ModelAttribute User user, Model model) {
-        userService.registerUser(user);
-        model.addAttribute("success", "Account created! Please log in.");
-        return "auth/login";
-    }
-
-    @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
-        return "redirect:/auth/login";
-    }
-    @GetMapping("/postLogin")
-    public String postLoginRedirect(Authentication authentication) {
-        String role = authentication.getAuthorities().iterator().next().getAuthority();
-
-        if (role.equals("TEACHER")) {
-            return "redirect:/teacher/dashboard";
-        } else {
-            return "redirect:/student/dashboard";
+        try {
+            userService.registerUser(user);
+            model.addAttribute("success", "Account created! Please log in.");
+            return "auth/login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("user", user);
+            return "auth/register";
+        } catch (Exception e) {
+            model.addAttribute("error", "Registration failed: " + e.getMessage());
+            model.addAttribute("user", user);
+            return "auth/register";
         }
     }
 

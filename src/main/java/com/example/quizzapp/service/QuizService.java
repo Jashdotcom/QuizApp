@@ -2,6 +2,7 @@ package com.example.quizzapp.service;
 
 import com.example.quizzapp.model.Question;
 import com.example.quizzapp.model.Quiz;
+import com.example.quizzapp.model.QuizStatus;
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.repository.QuestionRepository;
 import com.example.quizzapp.repository.QuizRepository;
@@ -41,7 +42,10 @@ public class QuizService {
         quiz.setCreatedBy(teacher);
         quiz.setTimePerQuestion(timePerQuestion);
         quiz.setPublished(false);
-        quiz.setJoinCode(generateJoinCode(6));
+        quiz.setStatus(QuizStatus.DRAFT);
+        String code = generateJoinCode(6);
+        quiz.setJoinCode(code);
+        quiz.setUniqueCode(code);
 
         return quizRepository.save(quiz);
     }
@@ -84,6 +88,8 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
         quiz.setPublished(true);
+        quiz.setStatus(QuizStatus.PUBLISHED);
+        quiz.setPublishedAt(java.time.ZonedDateTime.now());
         return quizRepository.save(quiz);
     }
 
@@ -91,6 +97,7 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
         quiz.setPublished(false);
+        quiz.setStatus(QuizStatus.DRAFT);
         return quizRepository.save(quiz);
     }
 
@@ -132,5 +139,47 @@ public class QuizService {
     public Quiz joinQuiz(String joinCode) {
         return quizRepository.findByJoinCodeAndPublishedTrue(joinCode)
                 .orElseThrow(() -> new RuntimeException("Invalid code or quiz not published"));
+    }
+
+    /**
+     * Duplicate an existing quiz
+     * Creates a new quiz with all questions from the original
+     * @param quizId ID of quiz to duplicate
+     * @param teacherId ID of teacher creating the duplicate
+     * @return newly created quiz
+     */
+    public Quiz duplicateQuiz(Long quizId, Long teacherId) {
+        Quiz originalQuiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+        
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+
+        // Create new quiz with copied data
+        Quiz newQuiz = new Quiz();
+        newQuiz.setTitle(originalQuiz.getTitle() + " (Copy)");
+        newQuiz.setDescription(originalQuiz.getDescription());
+        newQuiz.setTimePerQuestion(originalQuiz.getTimePerQuestion());
+        newQuiz.setCreatedBy(teacher);
+        newQuiz.setPublished(false);
+        newQuiz.setStatus(QuizStatus.DRAFT);
+        String code = generateJoinCode(6);
+        newQuiz.setJoinCode(code);
+        newQuiz.setUniqueCode(code);
+
+        Quiz savedQuiz = quizRepository.save(newQuiz);
+
+        // Copy all questions
+        for (Question originalQuestion : originalQuiz.getQuestions()) {
+            Question newQuestion = new Question();
+            newQuestion.setQuiz(savedQuiz);
+            newQuestion.setQuestionText(originalQuestion.getQuestionText());
+            newQuestion.setOptions(new ArrayList<>(originalQuestion.getOptions()));
+            newQuestion.setCorrectOptionIndex(originalQuestion.getCorrectOptionIndex());
+            newQuestion.setPoints(originalQuestion.getPoints());
+            questionRepository.save(newQuestion);
+        }
+
+        return savedQuiz;
     }
 }
