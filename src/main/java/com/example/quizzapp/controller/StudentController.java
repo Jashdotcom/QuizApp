@@ -1,101 +1,95 @@
+// File: src/main/java/com/example/quizzapp/controller/StudentController.java
 package com.example.quizzapp.controller;
 
 import com.example.quizzapp.model.Quiz;
 import com.example.quizzapp.model.User;
-import com.example.quizzapp.repository.QuizRepository;
-import com.example.quizzapp.repository.UserRepository;
-import com.example.quizzapp.security.UserPrincipal;
+import com.example.quizzapp.model.QuizResult;
 import com.example.quizzapp.service.QuizResultService;
+import com.example.quizzapp.service.QuizService;
+import com.example.quizzapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.security.Principal;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/student")
 public class StudentController {
 
     @Autowired
-    private QuizRepository quizRepository;
+    private QuizService quizService;
 
     @Autowired
-    private UserRepository userRepository;
+    private QuizResultService resultService;
 
     @Autowired
-    private QuizResultService quizResultService;
+    private UserService userService;
 
     @GetMapping("/dashboard")
-    public String dashboard(Authentication authentication, Model model) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "redirect:/auth/login";
-        }
+    public String studentDashboard(Model model, Principal principal) {
+        String username = principal.getName();
+        User student = userService.findByUsername(username);
 
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        model.addAttribute("username", userPrincipal.getUsername());
-        model.addAttribute("quizzes", List.of()); // Empty list
-        return "student-dashboard";
+        List<Quiz> availableQuizzes = quizService.getAllQuizzes();
+        Double averageScore = resultService.getAverageScoreByStudent(student);
+
+        model.addAttribute("student", student);
+        model.addAttribute("quizzes", availableQuizzes);
+        model.addAttribute("averageScore", averageScore != null ? averageScore : 0.0);
+
+        return "student/dashboard";
     }
 
-    @PostMapping("/join")
-    public String joinQuiz(@RequestParam String code, Authentication authentication, Model model) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "redirect:/auth/login";
-        }
-
-        Optional<Quiz> quizOpt = quizRepository.findByJoinCode(code);
-        if (quizOpt.isPresent()) {
-            model.addAttribute("quiz", quizOpt.get());
-            return "quiz-attempt";
-        }
-        model.addAttribute("error", "Invalid quiz code");
-        return "student-dashboard";
+    @GetMapping("/join-quiz")
+    public String showJoinQuizPage() {
+        return "student/join-quiz";
     }
 
-    @PostMapping("/submitQuiz")
-    public String submitQuiz(
-            @RequestParam Long quizId,
-            @RequestParam int score,
-            @RequestParam int correctAnswers,
-            @RequestParam int totalQuestions,
-            @RequestParam int timeTaken,
-            Authentication authentication,
-            Model model) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "redirect:/auth/login";
+    @PostMapping("/join-quiz")
+    public String joinQuiz(@RequestParam String quizCode, RedirectAttributes redirectAttributes, Principal principal) {
+        try {
+            Quiz quiz = quizService.getQuizByCode(quizCode);
+            if (quiz != null) {
+                return "redirect:/student/attempt-quiz/" + quiz.getId();
+            } else {
+                redirectAttributes.addFlashAttribute("error", "Invalid quiz code");
+                return "redirect:/student/join-quiz";
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Invalid quiz code");
+            return "redirect:/student/join-quiz";
         }
-
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        User student = userRepository.findById(userPrincipal.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-
-        // Add empty quizzes list for now (to fix the error)
-        model.addAttribute("quizzes", List.of());
-
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow();
-
-        quizResultService.saveResult(quiz, student, score, correctAnswers, totalQuestions, timeTaken);
-        model.addAttribute("message", "Quiz submitted successfully!");
-        return "redirect:/student/dashboard";
     }
 
-    @GetMapping("/myResults")
-    public String viewResults(Authentication authentication, Model model) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "redirect:/auth/login";
-        }
-
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        User student = userRepository.findById(userPrincipal.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        model.addAttribute("results", quizResultService.getResultsByStudent(student));
-        return "student-results";
+    @GetMapping("/attempt-quiz")
+    public String showAvailableQuizzes(Model model) {
+        List<Quiz> availableQuizzes = quizService.getAllQuizzes();
+        model.addAttribute("quizzes", availableQuizzes);
+        return "student/attempt-quiz";
     }
 
+    @GetMapping("/my-results")
+    public String showMyResults(Model model, Principal principal) {
+        String username = principal.getName();
+        User student = userService.findByUsername(username);
+        List<QuizResult> results = resultService.getResultsByStudent(student);
+        model.addAttribute("results", results);
+        return "student/my-results";
+    }
+
+    @GetMapping("/leaderboard")
+    public String showLeaderboard(Model model) {
+        List<Object[]> leaderboard = resultService.getLeaderboard();
+        model.addAttribute("leaderboard", leaderboard);
+        return "student/leaderboard";
+    }
+
+    @GetMapping("/logout")
+    public String logout() {
+        return "redirect:/login?logout";
+    }
 }
