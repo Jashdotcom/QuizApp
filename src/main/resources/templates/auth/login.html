@@ -199,13 +199,16 @@
         <div th:if="${param.error}" class="alert alert-danger">
             <i class="fas fa-exclamation-circle"></i> Invalid username or password. Please try again.
         </div>
+        <!-- Show model 'error' set by AuthController -->
+        <div th:if="${error}" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}">Invalid credentials</span>
+        </div>
         <div th:if="${param.logout}" class="alert alert-success">
             <i class="fas fa-check-circle"></i> You have been logged out successfully.
         </div>
 
-        <!-- FIXED: Use the correct login processing URL -->
-        <!-- In your login.html -->
-        <form th:action="@{/login}" method="post">
+        <!-- Post to AuthController (/auth/login) -->
+        <form th:action="@{/auth/login}" method="post">
 
             <!-- CSRF token is automatically handled by Spring Security in newer versions -->
 

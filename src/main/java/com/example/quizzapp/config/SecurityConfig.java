@@ -1,6 +1,8 @@
 package com.example.quizzapp.config;
 
 import com.example.quizzapp.security.AuthTokenFilter;
+import com.example.quizzapp.security.AuthenticationFailureHandlerImpl;
+import com.example.quizzapp.security.AuthenticationSuccessHandlerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +20,12 @@ public class SecurityConfig {
     @Autowired(required = false)
     private AuthTokenFilter authTokenFilter;
 
+    @Autowired
+    private AuthenticationSuccessHandlerImpl authenticationSuccessHandlerImpl;
+
+    @Autowired
+    private AuthenticationFailureHandlerImpl authenticationFailureHandlerImpl;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -32,8 +40,10 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         // use the project's auth login template
                         .loginPage("/auth/login")
-                        // on success delegate to /auth/postLogin which chooses student/teacher dashboard
-                        .defaultSuccessUrl("/auth/postLogin", true)
+                        // ensure Spring Security processes the login request at the same URL as the form posts to
+                        .loginProcessingUrl("/auth/login")
+                        .successHandler(authenticationSuccessHandlerImpl)
+                        .failureHandler(authenticationFailureHandlerImpl)
                         .permitAll()
                 )
 

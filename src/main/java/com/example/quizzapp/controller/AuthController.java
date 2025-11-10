@@ -2,10 +2,8 @@ package com.example.quizzapp.controller;
 
 import com.example.quizzapp.model.User;
 import com.example.quizzapp.model.UserRole;
-
 import com.example.quizzapp.service.UserService;
 import org.springframework.security.core.Authentication;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,20 +21,6 @@ public class AuthController {
 
     @GetMapping("/login")
     public String showLoginForm() {
-        return "auth/login";
-    }
-
-    @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password, HttpSession session, Model model) {
-        Optional<User> userOpt = userService.authenticate(username, password);
-        if (userOpt.isPresent()) {
-            session.setAttribute("loggedInUser", userOpt.get());
-            if (userOpt.get().getRole() == UserRole.TEACHER)
-                return "redirect:/teacher/dashboard";
-            else
-                return "redirect:/student/dashboard";
-        }
-        model.addAttribute("error", "Invalid credentials");
         return "auth/login";
     }
 
@@ -58,16 +42,17 @@ public class AuthController {
         session.invalidate();
         return "redirect:/auth/login";
     }
+
     @GetMapping("/postLogin")
     public String postLoginRedirect(Authentication authentication) {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
 
-        if (role.equals("TEACHER")) {
+        // Authorities are usually in the format ROLE_TEACHER / ROLE_STUDENT
+        if ("ROLE_TEACHER".equals(role) || role.endsWith("TEACHER")) {
             return "redirect:/teacher/dashboard";
         } else {
             return "redirect:/student/dashboard";
         }
     }
-
 
 }
