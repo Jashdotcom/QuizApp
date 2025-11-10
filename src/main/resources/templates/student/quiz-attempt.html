@@ -1,37 +1,114 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Attempt Quiz</title>
+    <meta charset="UTF-8">
+    <title th:text="${quiz.title}">Attempt Quiz</title>
     <style>
-        body { font-family: Arial; text-align: center; margin: 40px; }
-        .question { margin: 20px; }
-        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        body { font-family: Arial; margin: 20px; }
+        .question { margin: 20px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+        .options { margin-top: 8px; }
+        .timer { font-weight: bold; margin-bottom: 10px; }
+        .submit-btn { background: #4CAF50; color: white; padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; }
+        .submit-btn:disabled { background: #ccc; }
     </style>
-    <script>
-        let timer = 60; // 60 seconds
-        function countdown() {
-            if (timer <= 0) {
-                document.getElementById('quizForm').submit();
-                return;
-            }
-            document.getElementById('timer').innerText = timer;
-            timer--;
-            setTimeout(countdown, 1000);
-        }
-        window.onload = countdown;
-    </script>
 </head>
 <body>
-<h1 th:text="${quiz.title}"></h1>
-<p>Time remaining: <span id="timer"></span> seconds</p>
+<h1 th:text="${quiz.title}">Quiz Title</h1>
+<p th:text="${quiz.description}">Quiz description</p>
+<div class="timer">Time remaining: <span id="timer">0</span> seconds</div>
 
-<form id="quizForm" method="post" action="/student/submitQuiz">
-    <input type="hidden" name="quizId" th:value="${quiz.id}" />
-    <input type="hidden" name="score" value="80" /> <!-- Dummy for now -->
-    <input type="hidden" name="correctAnswers" value="4" />
-    <input type="hidden" name="totalQuestions" value="5" />
-    <input type="hidden" name="timeTaken" value="60" />
-    <button type="submit">Submit Quiz</button>
-</form>
+<div id="questions" th:data-quiz-id="${quiz.id}" th:data-time-per-question="${quiz.timePerQuestion}">
+    <div th:each="q,iterStat : ${quiz.questions}" class="question" th:data-question-id="${q.id}">
+        <div><strong th:text="${iterStat.index + 1} + '. ' + ${q.questionText}"></strong></div>
+        <div class="options">
+            <div th:each="opt,idx : ${q.options}">
+                <label>
+                    <input type="radio" th:name="${'q-' + q.id}" th:value="${idx}" />
+                    <span th:text="${opt}"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button id="submitBtn" class="submit-btn">Submit Quiz</button>
+
+<script>
+    (function() {
+        // Read quizId and timePerQuestion from data attributes
+        const questionsContainer = document.getElementById('questions');
+        const quizId = parseInt(questionsContainer.getAttribute('data-quiz-id')) || 0;
+        const timePerQuestionRaw = questionsContainer.getAttribute('data-time-per-question');
+        const timePerQuestion = timePerQuestionRaw ? parseInt(timePerQuestionRaw) : 0;
+
+        const totalQuestions = document.querySelectorAll('.question').length;
+        let timerSec = (timePerQuestion && timePerQuestion > 0) ? timePerQuestion * totalQuestions : Math.max(60, totalQuestions * 30);
+        document.getElementById('timer').innerText = timerSec;
+
+        const submitBtn = document.getElementById('submitBtn');
+
+        const intervalId = setInterval(() => {
+            timerSec--;
+            document.getElementById('timer').innerText = timerSec;
+            if (timerSec <= 0) {
+                clearInterval(intervalId);
+                submitAnswers();
+            }
+        }, 1000);
+
+        function collectAnswers() {
+            const questions = document.querySelectorAll('.question');
+            const answers = [];
+            questions.forEach(qEl => {
+                const qid = parseInt(qEl.getAttribute('data-question-id'));
+                const radios = qEl.querySelectorAll('input[type=radio]');
+                let selected = null;
+                radios.forEach(r => { if (r.checked) selected = parseInt(r.value); });
+                answers.push({ questionId: qid, selectedOptionIndex: selected, timeTakenSeconds: null });
+            });
+            return answers;
+        }
+
+        async function submitAnswers() {
+            submitBtn.disabled = true;
+            const answers = collectAnswers();
+            const payload = {
+                quizId: quizId,
+                answers: answers
+            };
+
+            try {
+                const res = await fetch('/student/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    // Redirect to the detailed result page using returned resultId
+                    if (json.resultId) {
+                        window.location.href = '/student/result/' + json.resultId;
+                    } else {
+                        alert('Quiz submitted! Score: ' + json.score + ' / ' + json.totalQuestions);
+                        window.location.href = '/student/my-results';
+                    }
+                } else {
+                    alert('Submission failed: ' + (json.error || JSON.stringify(json)));
+                    submitBtn.disabled = false;
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+                submitBtn.disabled = false;
+            }
+        }
+
+        submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!confirm('Submit your answers now?')) return;
+            clearInterval(intervalId);
+            submitAnswers();
+        });
+    })();
+</script>
 </body>
 </html>

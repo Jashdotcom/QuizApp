@@ -1,76 +1,54 @@
 package com.example.quizzapp.config;
 
-import com.example.quizzapp.service.CustomerUserDetailsService;
+import com.example.quizzapp.security.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private CustomerUserDetailsService customerUserDetailsService;
+    @Autowired(required = false)
+    private AuthTokenFilter authTokenFilter;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * ✅ Define the AuthenticationManager explicitly using AuthenticationManagerBuilder
-     */
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authBuilder.userDetailsService(customerUserDetailsService).passwordEncoder(passwordEncoder());
-        return authBuilder.build();
-    }
-
-    /**
-     * ✅ Configure your security filter chain
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/auth/**", "/register", "/css/**", "/js/**").permitAll()
-                        .requestMatchers("/dashboard").authenticated()
+                // disabling CSRF for simplicity (templates can be updated to include CSRF token if desired)
+                .csrf(csrf -> csrf.disable())
+
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
+
                 .formLogin(form -> form
+                        // use the project's auth login template
                         .loginPage("/auth/login")
-                        .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/dashboard", true)
+                        // on success delegate to /auth/postLogin which chooses student/teacher dashboard
+                        .defaultSuccessUrl("/auth/postLogin", true)
                         .permitAll()
                 )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/auth/login?logout")
-                        .permitAll()
-                );
+
+                .logout(logout -> logout.permitAll());
+
+        // Register JWT filter if present
+        if (authTokenFilter != null) {
+            http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
+        }
 
         return http.build();
     }
 
-
-
-    /**
-     * ✅ DaoAuthenticationProvider if you use it somewhere
-     */
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(customerUserDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

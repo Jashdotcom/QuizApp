@@ -1,3 +1,4 @@
+// java
 package com.example.quizzapp.service;
 
 import com.example.quizzapp.model.User;
@@ -10,7 +11,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 import com.example.quizzapp.model.UserRole;
-import java.util.*;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Optional;
 
 @Service
 @Primary
@@ -21,12 +25,14 @@ public class CustomerUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        Optional<User> userOpt = userRepository.findByUsername(username);
 
-        // UserRole stored as enum in user entity
-        UserRole userRole = UserRole.valueOf(user.getRole().toString());
+        User user = userOpt.orElseThrow(() ->
+                new UsernameNotFoundException("User not found: " + username)
+        );
 
+        // If role is null, fall back to STUDENT to avoid NPEs
+        UserRole userRole = user.getRole() != null ? user.getRole() : UserRole.STUDENT;
 
         Collection<GrantedAuthority> authorities = Collections.singletonList(
                 new SimpleGrantedAuthority("ROLE_" + userRole.name())

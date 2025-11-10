@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Result Detail</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 600px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2 th:text="${result.quiz.title}">Quiz Title</h2>
+    <p><strong>Student:</strong> <span th:text="${result.student.username}">student</span></p>
+    <p><strong>Score:</strong> <span th:text="${result.score}">0</span></p>
+    <p><strong>Correct Answers:</strong> <span th:text="${result.correctAnswers}">0</span> / <span th:text="${result.totalQuestions}">0</span></p>
+    <p><strong>Time taken:</strong> <span th:text="${result.timeTaken}">0</span> seconds</p>
+    <p><strong>Completed At:</strong> <span th:text="${#dates.format(result.completedAt, 'yyyy-MM-dd HH:mm')}">date</span></p>
+
+    <div style="margin-top:16px;">
+        <a th:href="@{/student/my-results}">Back to My Results</a>
+    </div>
+</div>
+</body>
+</html>
